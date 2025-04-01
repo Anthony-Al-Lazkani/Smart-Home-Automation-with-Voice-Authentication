@@ -1,0 +1,37 @@
+# Ignore Python virtual environment
+.venv/
+
+# Ignore Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Ignore environment variables
+.env
+
+# Ignore database files
+database.db
+
+# Ignore IDE settings (optional)
+.idea/
+.vscode/
+
+# Ignore specific backend folders
+backend/failed_attempts/
+backend/voices/
+
+# Ignore large or unnecessary ML model files
+backend/model_checkpoints/
+backend/pretrained_models/
+backend/VoiceAuthentication/model_checkpoints
+backend/VoiceAuthentication/pretrained_models
+backend/VoiceAuthentication/tmpdir
+
+# Ignore Gradle build cache
+.gradle/
+*.bin
+*.lock
+*.cache
+*.log
+build/
+

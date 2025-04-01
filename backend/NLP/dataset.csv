@@ -1,0 +1,72 @@
+command,text
+lights_on,turn on the lights
+lights_on,turn the lights on
+lights_on,switch on the lights
+lights_on,turn the lights on please
+lights_on,please turn on the lights
+lights_on,lights on please
+lights_on,switch on lights
+lights_on,can you turn the lights on?
+lights_on,can you please switch on the lights?
+lights_on,turn on the light
+lights_on,turn on that light
+lights_on,lights on now
+lights_on,make the lights go on
+lights_on,turn lights on
+lights_on,please turn the lights on
+lights_on,activate the lights
+lights_on,make the lights on
+lights_on,switch the lights on
+lights_on,open the lights
+lights_off,turn off the lights
+lights_off,turn the lights off
+lights_off,switch off the lights
+lights_off,please switch off the lights
+lights_off,turn the lights off please
+lights_off,can you turn off the lights?
+lights_off,switch off lights
+lights_off,turn lights off
+lights_off,please turn the lights off
+lights_off,turn off that light
+lights_off,lights off now
+lights_off,make the lights go off
+lights_off,turn the light off
+lights_off,switch the lights off
+lights_off,open the lights off
+lights_off,shut the lights off
+lights_off,deactivate the lights
+lights_off,close the lights
+lights_on,please turn on the bedroom lights
+lights_on,turn on the kitchen lights
+lights_on,activate the living room lights
+lights_off,turn off the kitchen lights
+lights_off,deactivate the bedroom lights
+lights_off,close the living room lights
+lights_on,turn on the ceiling light
+lights_off,turn off the ceiling light
+lights_on,can you turn on the hallway lights?
+lights_off,turn off the hallway lights
+lights_on,activate all the lights
+lights_off,deactivate all the lights
+lights_on,turn all the lights on
+lights_off,turn all the lights off
+lights_on,please turn the lights on in the living room
+lights_off,turn the lights off in the bedroom
+lights_on,can you activate the light in the kitchen?
+lights_off,switch off the light in the hallway
+lights_on,switch the light on
+lights_on,turn on the lights please
+lights_off,switch off the lights now
+lights_on,activate the lights now
+lights_off,deactivate the lights now
+lights_on,lights on in the bedroom
+lights_off,lights off in the living room
+lights_on,switch the lights on please
+lights_off,switch the lights off please
+lights_on,turn the lights on immediately
+lights_off,turn off the lights immediately
+lights_on,can you turn on the light for me?
+lights_off,can you turn off the light for me?
+lights_on,please switch on the living room lights
+lights_off,please switch off the kitchen lights
+lights_off,make the room darker
