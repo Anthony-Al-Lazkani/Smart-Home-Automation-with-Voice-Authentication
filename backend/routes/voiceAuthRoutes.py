@@ -7,12 +7,17 @@ from jwt_utils import decode_token
 import os
 import time
 from pydantic import BaseModel
+import joblib
 
 voiceAuthRouter = APIRouter()
 VOICES_DIR = "voices/"
 FAILED_ATTEMPTS_DIR = "failed_attempts/"
 os.makedirs(VOICES_DIR, exist_ok=True)
 os.makedirs(FAILED_ATTEMPTS_DIR, exist_ok=True)
+
+model = joblib.load("NLP/nlp_command_model.pkl")
+vectorizer = joblib.load("NLP/nlp_vectorizer.pkl")
+PREDEFINED_ACTIONS = ["door_lock", "door_unlock", "heater_on", "heater_off"]
 
 
 # Dictionary to track failed attempt with the time of failure
@@ -113,5 +118,78 @@ async def authenticate_voice(token: str = Form(...), audio: UploadFile = File(..
         # Clean up temporary files
         delete_temp_files()
         return JSONResponse(content={"message": "Authentication failed", "isAuthenticated" : False}, status_code=401)
+
+
+@voiceAuthRouter.post("/voice-control")
+async def authenticate_voice(token: str = Form(...), audio: UploadFile = File(...)):
+    """
+    Authenticates a user based on voice by comparing the uploaded AAC file with the saved voice sample.
+    """
+    if not token:
+        raise HTTPException(status_code=400, detail="Token is required")
+
+    # Decode token to get username
+    username = decode_token(token)["username"]
+    saved_voice_path = os.path.join(VOICES_DIR, f"{username}.wav")
+
+    if not os.path.exists(saved_voice_path):
+        raise HTTPException(status_code=404, detail="No saved voice sample found for this user")
+
+    # Initialize failed attempts tracker for the user if not present
+    if username not in failed_attempts_tracker:
+        failed_attempts_tracker[username] = {"attempts": 0, "last_failed_time": time.time()}
+
+    # Reset failed attempts if 5 minutes have passed since the last failed attempt
+    if time.time() - failed_attempts_tracker[username]["last_failed_time"] > MAX_ATTEMPT_TIME:
+        failed_attempts_tracker[username]["attempts"] = 0
+
+    # Check if the user has reached the limit of failed attempts
+    if failed_attempts_tracker[username]["attempts"] >= MAX_FAILED_ATTEMPTS:
+        raise HTTPException(status_code=403, detail="Too many failed attempts, please try again after 5 minutes.")
+
+    # Save raw audio
+    raw_aac_path = os.path.join(TEMP_DIR, f"{username}_temp.aac")
+    with open(raw_aac_path, "wb") as f:
+        f.write(await audio.read())
+
+    # Convert
+    temp_wav_path = os.path.join(TEMP_DIR, f"{username}_temp.wav")
+    convert_to_wav(raw_aac_path, temp_wav_path)
+
+    # Speech to text
+    transcription = speech_to_text(temp_wav_path)
+    print(f"Transcription: {transcription}")
+
+    # Process transcription with AI model (NLP model)
+    command_vec = vectorizer.transform([transcription])
+    prediction = model.predict(command_vec)[0]
+
+    if prediction in PREDEFINED_ACTIONS:
+        # Perform voice authentication
+        is_match = verify_voice(saved_voice_path, temp_wav_path)
+
+        if is_match:
+            failed_attempts_tracker[username] = {"attempts": 0, "last_failed_time": time.time()}
+            # Clean up temporary files
+            delete_temp_files()
+            return JSONResponse(content={"message": "Authentication successful", "isAuthenticated": True},
+                                status_code=200)
+        else:
+            failed_attempts_tracker[username]["attempts"] += 1
+            failed_attempts_tracker[username]["last_failed_time"] = time.time()
+
+            # Save failed audio after 3 failed attempts
+            if failed_attempts_tracker[username]["attempts"] >= MAX_FAILED_ATTEMPTS:
+                failed_wav_path = os.path.join(FAILED_ATTEMPTS_DIR, f"{username}_failed_{int(time.time())}.wav")
+                convert_to_wav(raw_aac_path, failed_wav_path)
+
+            # Clean up temporary files
+            delete_temp_files()
+            return JSONResponse(content={"message": "Authentication failed", "isAuthenticated": False}, status_code=401)
+
+    else:
+        # If the action is not recognized, return success without voice authentication
+        delete_temp_files()
+        return JSONResponse(content={"message": "Command successful without voice authentication", "isAuthenticated": True}, status_code=200)
 
 

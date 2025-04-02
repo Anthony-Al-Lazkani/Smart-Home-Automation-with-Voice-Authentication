@@ -46,18 +46,18 @@ joblib.dump(vectorizer, "nlp_vectorizer.pkl")
 print("Model and vectorizer saved successfully!")
 
 # Testing code for new inputs
-def predict_command(text):
-    text = clean_text(text)  # Clean the input text
-    text_vec = vectorizer.transform([text])
-    prediction = model.predict(text_vec)
-    return prediction[0]
+# def predict_command(text):
+#     text = clean_text(text)  # Clean the input text
+#     text_vec = vectorizer.transform([text])
+#     prediction = model.predict(text_vec)
+#     return prediction[0]
 
 # Test with new inputs
-test_commands = [
-    "make the room darker"
-]
-
-for command in test_commands:
-    predicted_command = predict_command(command)
-    print(f"Input: {command} -> Predicted Command: {predicted_command}")
+# test_commands = [
+#     "make the room darker"
+# ]
+#
+# for command in test_commands:
+#     predicted_command = predict_command(command)
+#     print(f"Input: {command} -> Predicted Command: {predicted_command}")
 

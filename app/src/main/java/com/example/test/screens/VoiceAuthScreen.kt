@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.test.R
+import com.example.test.api.RetrofitInstance
 import com.example.test.objects.TokenManager
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -73,6 +74,9 @@ fun VoiceAuthScreen(navController: NavController,modifier: Modifier = Modifier) 
     var cancelSignal by remember { mutableStateOf(false) }
 
     val coroutineScope = rememberCoroutineScope()
+
+    // Api Instance
+    val voiceAuthApi = RetrofitInstance.getVoiceAuthUpload()
 
     // Start recording
     fun startRecording() {
@@ -126,19 +130,6 @@ fun VoiceAuthScreen(navController: NavController,modifier: Modifier = Modifier) 
         }
     }
 
-    // Cancel recording and delete temp file
-    fun cancelRecording() {
-        stopRecording()
-        tempFile.delete()
-        Log.d("Audio", "Recording canceled")
-        isPaused = false
-        isRecording = false
-        isComplete = false
-        isPlaying = false
-        progress = 0f
-        cancelSignal = !cancelSignal
-    }
-
     // Play recording
     fun playRecording() {
         if (!tempFile.exists()) return
@@ -160,20 +151,36 @@ fun VoiceAuthScreen(navController: NavController,modifier: Modifier = Modifier) 
         isPlaying = false
     }
 
+    // Cancel recording and delete temp file
+    fun cancelRecording() {
+        stopRecording()
+        stopPlayback()
+        tempFile.delete()
+        Log.d("Audio", "Recording canceled")
+        isPaused = false
+        isRecording = false
+        isComplete = false
+        isPlaying = false
+        progress = 0f
+        cancelSignal = !cancelSignal
+    }
+
+
+
     // Send recording to server
     fun sendRecording() {
         stopRecording()
+        stopPlayback()
         coroutineScope.launch {
             val requestFile = tempFile.asRequestBody("audio/aac".toMediaTypeOrNull())
             val audioPart = MultipartBody.Part.createFormData("audio", "recorded.aac", requestFile)
-//            val tokenPart = token.toRequestBody("text/plain".toMediaTypeOrNull())
 
             val tokenPart = token?.toRequestBody("text/plain".toMediaTypeOrNull())
                 ?: // Handle the null case (e.g., show an error, or use a default token)
-                "".toRequestBody("text/plain".toMediaTypeOrNull()) // Example fallback
+                "".toRequestBody("text/plain".toMediaTypeOrNull())
 
             val response = try {
-                VoiceAuthApiService.create().uploadVoice(tokenPart, audioPart)
+                voiceAuthApi.uploadVoice(tokenPart, audioPart)
             } catch (e: Exception) {
                 Log.e("Upload", "Error: ${e.message}")
                 return@launch
@@ -283,25 +290,5 @@ fun MicButton(isRecording: Boolean, isPaused: Boolean, progress: Float, onStartR
             )
         }
         Image(painter = painterResource(id = R.drawable.mic_record), contentDescription = "Microphone", modifier = Modifier.size(50.dp))
-    }
-}
-
-interface VoiceAuthApiService {
-    @Multipart
-    @POST("/voice-auth/voice-upload")
-    suspend fun uploadVoice(
-        @Part("token") token: RequestBody,
-        @Part audio: MultipartBody.Part
-    ): retrofit2.Response<ResponseBody>
-
-    companion object {
-        fun create(): VoiceAuthApiService {
-            return Retrofit.Builder()
-//                .baseUrl("http://192.168.1.12:8000")
-                .baseUrl("http://192.168.1.120:8000")
-                .addConverterFactory(GsonConverterFactory.create())
-                .build()
-                .create(VoiceAuthApiService::class.java)
-        }
     }
 }

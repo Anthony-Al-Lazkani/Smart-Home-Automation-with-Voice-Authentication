@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.test.api.RetrofitInstance
 import com.example.test.objects.TokenManager
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -74,6 +75,9 @@ fun MainScreen(navController: NavController) {
     val tempFile = remember { File.createTempFile("temp_audio", ".aac", context.cacheDir) }
     var isRecording by remember { mutableStateOf(false) }
 
+    // Api Instance
+    val voiceAuthentication = RetrofitInstance.getVoiceAuthentication()
+
     fun startRecording() {
         mediaRecorder = MediaRecorder().apply {
             setAudioSource(MediaRecorder.AudioSource.MIC)
@@ -115,7 +119,7 @@ fun MainScreen(navController: NavController) {
                 "".toRequestBody("text/plain".toMediaTypeOrNull()) // Example fallback
 
             val response = try {
-                SpeechRecognitionApiService.create().authenticateVoice(tokenPart, audioPart)
+                voiceAuthentication.authenticateVoice(tokenPart, audioPart)
             } catch (e: Exception) {
                 Toast.makeText(context, "Authentication Failed : ${e.message}", Toast.LENGTH_SHORT).show()
                 return@launch
@@ -211,30 +215,3 @@ fun ContentScreen(modifier: Modifier = Modifier, selectedItemIndex: Int) {
         1 -> SettingsScreen()
     }
 }
-
-data class SpeechRecognitionApiResponse (
-        val message : String,
-        val isAuthenticated : Boolean
-        )
-
-interface SpeechRecognitionApiService {
-    @Multipart
-    @POST("/voice-auth/voice-authentication")
-    suspend fun authenticateVoice(
-        @Part("token") token: RequestBody,
-        @Part audio: MultipartBody.Part
-    ): SpeechRecognitionApiResponse
-
-    companion object {
-        fun create(): SpeechRecognitionApiService {
-            return Retrofit.Builder()
-//                .baseUrl("http://192.168.1.12:8000")
-                .baseUrl("http://192.168.1.120:8000")
-                .addConverterFactory(GsonConverterFactory.create())
-                .build()
-                .create(SpeechRecognitionApiService::class.java)
-        }
-    }
-}
-
-

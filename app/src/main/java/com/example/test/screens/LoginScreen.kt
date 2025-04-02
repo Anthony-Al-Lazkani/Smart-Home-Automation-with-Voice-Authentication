@@ -7,7 +7,6 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavController
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,10 +15,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -29,33 +28,11 @@ import androidx.compose.ui.unit.sp
 import com.example.test.objects.TokenManager
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
-import retrofit2.http.Body
-import retrofit2.http.POST
-
-data class SignInRequest(
-    val username: String,
-    val password: String
-)
-
-data class SignInResponse(
-    val message : String,
-    val token : String
-)
-
-interface AuthApiLogin {
-    @POST("auth/login")
-    suspend fun signIn(@Body request: SignInRequest): SignInResponse
-}
-
-val retrofit2 = Retrofit.Builder()
-//    .baseUrl("http://192.168.1.12:8000/")
-    .baseUrl("http://192.168.1.120:8000/")
-    .addConverterFactory(GsonConverterFactory.create())
-    .build()
-
-val authApiLogin = retrofit2.create(AuthApiLogin::class.java)
+import android.widget.Toast
+import com.example.test.api.RetrofitInstance
+import retrofit2.HttpException
+import org.json.JSONObject
+import com.example.test.api.SignInRequest
 
 
 @Composable
@@ -63,33 +40,50 @@ fun LoginScreen(navController: NavController) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf("") }
+    var loading by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
+
+    // Api Instance
+    val authApiLogin = RetrofitInstance.getAuthAPILogin()
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White),
+            .fillMaxHeight()
+            .background(Color(0xFF05103A)),
         contentAlignment = Alignment.Center
     ) {
+
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(20.dp)
         ) {
-            // Logo Placeholder
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(8.dp)
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.home_logo),
-                    contentDescription = "App Logo",
-                    modifier = Modifier.size(50.dp)
-                )
+            Text(
+                text = "Welcome Back to Your Smart Home",
+                fontSize = 42.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color.White,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentWidth(Alignment.CenterHorizontally)
+                    .padding(bottom = 16.dp)
+            )
 
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(text = "EchoControl", fontSize = 25.sp)
-            }
+            // Logo Placeholder
+            Image(
+                painter = painterResource(id = R.drawable.home_logo),
+                contentDescription = "Home Logo",
+                modifier = Modifier.size(200.dp)
+                    .padding(top=15.dp),
+            )
+            Text(
+                text = "Vira",
+                fontSize = 42.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                modifier = Modifier.padding(bottom = 15.dp)
+            )
 
             Spacer(modifier = Modifier.height(20.dp))
 
@@ -98,6 +92,7 @@ fun LoginScreen(navController: NavController) {
                 value = username,
                 onValueChange = { username = it },
                 label = { Text("Username") },
+                textStyle = TextStyle(color = Color.White),
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -109,6 +104,7 @@ fun LoginScreen(navController: NavController) {
                 onValueChange = { password = it },
                 label = { Text("Password") },
                 visualTransformation = PasswordVisualTransformation(),
+                textStyle = TextStyle(color = Color.White),
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -117,6 +113,7 @@ fun LoginScreen(navController: NavController) {
             Button(
                 onClick = {
                     coroutineScope.launch {
+                        loading = true
                         try {
                             val response = authApiLogin.signIn(
                                 SignInRequest(username, password)
@@ -125,16 +122,44 @@ fun LoginScreen(navController: NavController) {
                             TokenManager.saveToken(context = context, token = response.token)
 
                             navController.navigate("main screen")
+                        }catch (e: HttpException) {
+                            try {
+                                // Extract the error message from the error body
+                                val errorBody = e.response()?.errorBody()?.string()
+                                val jsonObject = errorBody?.let {
+                                    JSONObject(it)
+                                } ?: JSONObject() // Fallback to an empty JSONObject if errorBody is null
+
+                                val errorMessage = jsonObject.optString("detail", "An error occurred")
+
+                                // Show error as a toast message, ensure errorMessage is non-null
+                                Toast.makeText(context, errorMessage ?: "An error occurred", Toast.LENGTH_LONG).show()
+                            } catch (jsonException: Exception) {
+                                // If JSON parsing fails, show a generic message
+                                Toast.makeText(context, "An error occurred while parsing the response.", Toast.LENGTH_LONG).show()
+                            }
                         } catch (e: Exception) {
                             errorMessage = e.localizedMessage ?: "An error occurred"
+                            Toast.makeText(context, "An unknown error occurred: ${e.message}", Toast.LENGTH_LONG).show()
+                        } finally {
+                            loading = false
                         }
                     }
                 },
                 shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF48F19)),
-                modifier = Modifier.fillMaxWidth()
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2A6FCF)),
+                enabled = !loading,
+                modifier = Modifier.fillMaxWidth().height(56.dp)
             ) {
-                Text(text = "Login", fontSize = 18.sp)
+                if (loading) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(24.dp)
+                    )
+                } else {
+                    Text(text = "Login", fontSize = 18.sp)
+                }
             }
 
             Spacer(modifier = Modifier.height(15.dp))
@@ -142,63 +167,17 @@ fun LoginScreen(navController: NavController) {
             Text(
                 text = "Forgot your password?",
                 fontSize = 12.sp,
-                color = Color(0xFFFF9800)
+                color = Color.White,
             )
-
-            Spacer(modifier = Modifier.height(15.dp))
-
-            Text(text = "or", fontSize = 14.sp, color = Color.Gray)
-
-            Spacer(modifier = Modifier.height(15.dp))
-
-            // Google Login Button
-            Button(
-                onClick = { /* Handle Google Sign-In */ },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF48F19)),
-                elevation = ButtonDefaults.buttonElevation(0.dp),
-                shape = RectangleShape,
-                modifier = Modifier
-                    .border(1.dp, Color(0xFFF48F19))
-                    .height(50.dp)
-                    .width(230.dp),
-                contentPadding = PaddingValues(0.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(50.dp)
-                            .background(Color.White)
-                            .border(1.dp, Color(0xFFF48F19)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.google_logo),
-                            contentDescription = "Google Sign-In",
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(16.dp))
-
-                    Text(
-                        text = "Login with Google",
-                        fontSize = 16.sp,
-                        color = Color.White,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
-
             Spacer(modifier = Modifier.height(20.dp))
 
             // Signup Link
             Text(
                 text = buildAnnotatedString {
-                    append("Don't have an account? ")
-                    withStyle(style = SpanStyle(color = Color(0xFFFF9800))) {
+                    withStyle(style = SpanStyle(color = Color.White)) {
+                        append("Don't have an account? ")
+                    }
+                    withStyle(style = SpanStyle(color = Color.Blue)) {
                         append("Sign Up")
                     }
                 },

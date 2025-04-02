@@ -70,3 +70,115 @@ lights_off,can you turn off the light for me?
 lights_on,please switch on the living room lights
 lights_off,please switch off the kitchen lights
 lights_off,make the room darker
+heater_on,turn on the heater
+heater_on,turn the heater on
+heater_on,switch on the heater
+heater_on,turn the heater on please
+heater_on,please turn on the heater
+heater_on,heater on please
+heater_on,switch on heater
+heater_on,can you turn the heater on?
+heater_on,can you please switch on the heater?
+heater_on,turn on the heat
+heater_on,turn on that heater
+heater_on,heater on now
+heater_on,make the heater go on
+heater_on,turn heater on
+heater_on,please turn on the heater
+heater_on,activate the heater
+heater_on,make the heater on
+heater_on,switch the heater on
+heater_on,open the heater
+heater_off,turn off the heater
+heater_off,turn the heater off
+heater_off,switch off the heater
+heater_off,please switch off the heater
+heater_off,turn the heater off please
+heater_off,can you turn off the heater?
+heater_off,switch off heater
+heater_off,turn heater off
+heater_off,please turn off the heater
+heater_off,turn off that heater
+heater_off,heater off now
+heater_off,make the heater go off
+heater_off,turn the heat off
+heater_off,switch the heater off
+heater_off,open the heater off
+heater_off,shut the heater off
+heater_off,deactivate the heater
+heater_off,close the heater
+heater_on,please turn on the bedroom heater
+heater_on,turn on the kitchen heater
+heater_on,activate the living room heater
+heater_off,turn off the kitchen heater
+heater_off,deactivate the bedroom heater
+heater_off,close the living room heater
+heater_on,turn on the ceiling heater
+heater_off,turn off the ceiling heater
+heater_on,can you turn on the hallway heater?
+heater_off,turn off the hallway heater
+heater_on,activate all the heaters
+heater_off,deactivate all the heaters
+heater_on,turn all the heaters on
+heater_off,turn all the heaters off
+heater_on,please turn the heater on in the living room
+heater_off,turn the heater off in the bedroom
+heater_on,can you activate the heater in the kitchen?
+heater_off,switch off the heater in the hallway
+heater_on,switch the heater on
+heater_on,turn on the heater please
+heater_off,switch off the heater now
+heater_on,activate the heater now
+heater_off,deactivate the heater now
+heater_on,heater on in the bedroom
+heater_off,heater off in the living room
+heater_on,switch the heater on please
+heater_off,switch the heater off please
+heater_on,turn the heater on immediately
+heater_off,turn off the heater immediately
+heater_on,can you turn on the heater for me?
+heater_off,can you turn off the heater for me?
+heater_on,please switch on the living room heater
+heater_off,please switch off the kitchen heater
+heater_off,make the room cooler
+door_unlock,unlock the door
+door_unlock,open the door
+door_unlock,can you unlock the door?
+door_unlock,please unlock the door
+door_unlock,door open please
+door_unlock,unbolt the door
+door_unlock,release the door lock
+door_unlock,deactivate the door lock
+door_unlock,let me in
+door_unlock,allow access
+door_unlock,grant entry
+door_unlock,permit entry
+door_unlock,door open now
+door_unlock,open the entrance
+door_unlock,unlock the entrance
+door_unlock,disable the lock
+door_unlock,unlatch the door
+door_unlock,unseal the door
+door_unlock,disengage the lock
+door_unlock,unlock the main door
+door_unlock,open the front door
+door_unlock,open the back door
+door_lock,lock the door
+door_lock,close the door
+door_lock,can you lock the door?
+door_lock,please lock the door
+door_lock,door closed please
+door_lock,bolt the door
+door_lock,secure the door
+door_lock,activate the door lock
+door_lock,shut the door
+door_lock,seal the door
+door_lock,engage the lock
+door_lock,lock the main door
+door_lock,close the entrance
+door_lock,lock the entrance
+door_lock,lock the front door
+door_lock,lock the back door
+door_lock,secure the entrance
+door_lock,fasten the door
+door_lock,door lock now
