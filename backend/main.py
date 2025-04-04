@@ -6,6 +6,7 @@ import uvicorn
 from routes.authRoutes import authRouter
 from routes.nlpRoutes import nlpRouter
 from routes.voiceAuthRoutes import voiceAuthRouter
+from routes.accountManagementRoutes import accountManagementRouter
 from database import create_db_and_tables
 
 app = FastAPI()
@@ -19,6 +20,7 @@ def on_startup():
 app.include_router(authRouter, prefix="/auth")
 app.include_router(nlpRouter, prefix="/nlp")
 app.include_router(voiceAuthRouter, prefix="/voice-auth")
+app.include_router(accountManagementRouter, prefix="/account")
 
 
 app.add_middleware(
