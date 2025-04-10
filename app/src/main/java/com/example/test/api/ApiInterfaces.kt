@@ -6,9 +6,12 @@ import okhttp3.ResponseBody
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
+import retrofit2.http.GET
 import retrofit2.http.Multipart
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.Part
+import retrofit2.http.Path
 
 // Login
 data class SignInRequest(
@@ -70,4 +73,49 @@ interface VoiceAuthenticationApi {
         @Part("token") token: RequestBody,
         @Part audio: MultipartBody.Part
     ): SpeechRecognitionApiResponse
+}
+
+
+// Devices GET API
+data class Device(
+    val id: Int,
+    val device_name: String,
+    val status: Boolean,
+    val last_updated: String
+)
+
+data class DevicesResponse(
+    val devices: List<Device>
+)
+
+interface DeviceApi{
+    @GET("/devices")
+    suspend fun getAllDevices():DevicesResponse
+}
+
+    // Password Reset API
+    data class ResetPasswordRequest(
+        val token : String,
+        val old_password : String,
+        val new_password : String
+    )
+
+    data class ResetPasswordResponse(
+        val message : String
+    )
+
+    interface ResetPasswordAPI {
+        @PATCH("account/reset-password")
+        suspend fun resetPassword(@Body request: ResetPasswordRequest): ResetPasswordResponse
+    }
+
+
+// Manual control
+data class DeviceControlResponse(
+    val message: String
+)
+
+interface ManualControlApi {
+    @POST("device/{command}")
+    suspend fun controlDevice(@Path("command") command: String): DeviceControlResponse
 }

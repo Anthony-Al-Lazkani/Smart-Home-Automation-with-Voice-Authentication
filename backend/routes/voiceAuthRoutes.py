@@ -1,4 +1,4 @@
-from fastapi import APIRouter, File, UploadFile, HTTPException, Form
+from fastapi import APIRouter, File, UploadFile, HTTPException, Form, Depends
 from fastapi.responses import JSONResponse
 from VoiceAuthentication.voiceAuth import verify_voice, speech_to_text
 from fastapi.responses import JSONResponse
@@ -6,8 +6,14 @@ from VoiceAuthentication.audio_files_manager import TEMP_DIR, convert_to_wav, de
 from jwt_utils import decode_token
 import os
 import time
+from typing import Annotated
 from pydantic import BaseModel
 import joblib
+from routes.deviceManagementRoutes import update_device_status
+from database import get_session
+from sqlalchemy.orm import Session
+from serialCommunicationUtils import send_message
+
 
 voiceAuthRouter = APIRouter()
 VOICES_DIR = "voices/"
@@ -15,8 +21,7 @@ FAILED_ATTEMPTS_DIR = "failed_attempts/"
 os.makedirs(VOICES_DIR, exist_ok=True)
 os.makedirs(FAILED_ATTEMPTS_DIR, exist_ok=True)
 
-model = joblib.load("NLP/nlp_command_model.pkl")
-vectorizer = joblib.load("NLP/nlp_vectorizer.pkl")
+pipeline = joblib.load("NLP/nlp_intent_pipeline.pkl")
 PREDEFINED_ACTIONS = ["door_lock", "door_unlock", "heater_on", "heater_off"]
 
 
@@ -25,6 +30,18 @@ failed_attempts_tracker = {}
 
 MAX_FAILED_ATTEMPTS = 3
 MAX_ATTEMPT_TIME = 300 # 300 seconds which means 5 minutes
+
+SessionDep = Annotated[Session, Depends(get_session)]
+
+
+device_action_mapping = {
+    "lights_on": ("lights", True),
+    "lights_off": ("lights", False),
+    "heater_on": ("heater", True),
+    "heater_off": ("heater", False),
+    "door_lock": ("door", False),
+    "door_unlocked": ("door", True)
+}
 
 @voiceAuthRouter.post("/voice-upload")
 async def upload_voice(token: str = Form(...), audio: UploadFile = File(...)):
@@ -55,7 +72,7 @@ async def upload_voice(token: str = Form(...), audio: UploadFile = File(...)):
     )
 
 @voiceAuthRouter.post("/voice-authentication")
-async def authenticate_voice(token: str = Form(...), audio: UploadFile = File(...)):
+async def authenticate_voice(session: SessionDep, token: str = Form(...), audio: UploadFile = File(...)):
     """
     Authenticates a user based on voice by comparing the uploaded AAC file with the saved voice sample.
     """
@@ -99,6 +116,33 @@ async def authenticate_voice(token: str = Form(...), audio: UploadFile = File(..
         failed_attempts_tracker[username] = {"attempts": 0, "last_failed_time": time.time()}
         transcription = speech_to_text(temp_wav_path)
         print(f"Transcription: {transcription}")
+
+        # Pass the transcription to the AI model for prediction
+
+        prediction = pipeline.predict([transcription]).tolist()[0]
+
+        arduino_response = send_message(prediction)
+
+        if not arduino_response:
+            raise HTTPException(status_code=400,detail="Arduino could not execute the requested command")
+
+        # Prediction mapping
+        device_info = device_action_mapping.get(prediction)
+        print(f"Device info: {device_info}")
+
+        if not device_info:
+            return JSONResponse(
+                content={"message": "Invalid command", "isAuthenticated": True},
+                status_code=400
+            )
+
+        device_name, device_status = device_info
+        response = await update_device_status(device_name, device_status, session)
+        print(f"DB update response: {response}")
+
+        if not response:
+            raise HTTPException(status_code=404, detail="Device not found")
+
         # Clean up temporary files
         delete_temp_files()
         return JSONResponse(content={"message": "Authentication successful", "isAuthenticated" : True}, status_code=200)

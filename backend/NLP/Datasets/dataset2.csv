@@ -1,0 +1,101 @@
+command,text
+lights_on,turn on the lights
+lights_on,turn the lights on
+lights_on,switch on the lights
+lights_on,turn on the light
+lights_on,lights on now
+lights_on,switch on lights
+lights_on,turn lights on
+lights_on,activate the lights
+lights_on,turn the lights on immediately
+lights_on,turn on the bedroom lights
+lights_on,turn on the kitchen lights
+lights_on,turn on the ceiling light
+lights_on,activate all the lights
+lights_on,turn all the lights on
+lights_on,lights on in the bedroom
+lights_on,turn the lights on in the living room
+lights_on,turn on the hallway lights
+lights_on,make the room brighter
+lights_off,turn off the lights
+lights_off,turn the lights off
+lights_off,switch off the lights
+lights_off,turn off that light
+lights_off,lights off now
+lights_off,switch off lights
+lights_off,turn lights off
+lights_off,deactivate the lights
+lights_off,turn off the bedroom lights
+lights_off,turn off the kitchen lights
+lights_off,turn off the ceiling light
+lights_off,deactivate all the lights
+lights_off,turn all the lights off
+lights_off,lights off in the living room
+lights_off,turn the lights off in the bedroom
+lights_off,switch off the light in the hallway
+lights_off,make the room darker
+heater_on,turn on the heater
+heater_on,turn the heater on
+heater_on,switch on the heater
+heater_on,turn on the heat
+heater_on,heater on now
+heater_on,turn heater on
+heater_on,activate the heater
+heater_on,turn on the bedroom heater
+heater_on,turn on the kitchen heater
+heater_on,activate the living room heater
+heater_on,turn on the ceiling heater
+heater_on,turn on the hallway heater
+heater_on,activate all the heaters
+heater_on,turn all the heaters on
+heater_on,turn the heater on in the living room
+heater_on,turn the heater on immediately
+heater_off,turn off the heater
+heater_off,turn the heater off
+heater_off,switch off the heater
+heater_off,turn off that heater
+heater_off,heater off now
+heater_off,switch off heater
+heater_off,turn heater off
+heater_off,deactivate the heater
+heater_off,turn off the bedroom heater
+heater_off,turn off the kitchen heater
+heater_off,turn off the ceiling heater
+heater_off,deactivate all the heaters
+heater_off,turn all the heaters off
+heater_off,heater off in the living room
+heater_off,turn off the heater immediately
+door_unlock,unlock the door
+door_unlock,open the door
+door_unlock,unbolt the door
+door_unlock,release the door lock
+door_unlock,deactivate the door lock
+door_unlock,let me in
+door_unlock,allow access
+door_unlock,grant entry
+door_unlock,permit entry
+door_unlock,door open now
+door_unlock,open the entrance
+door_unlock,unlock the entrance
+door_unlock,disable the lock
+door_unlock,unlatch the door
+door_unlock,unseal the door
+door_unlock,disengage the lock
+door_unlock,unlock the main door
+door_unlock,open the front door
+door_unlock,open the back door
+door_lock,lock the door
+door_lock,close the door
+door_lock,bolt the door
+door_lock,secure the door
+door_lock,activate the door lock
+door_lock,shut the door
+door_lock,seal the door
+door_lock,engage the lock
+door_lock,lock the main door
+door_lock,lock the entrance
+door_lock,lock the front door
+door_lock,lock the back door
+door_lock,secure the entrance
+door_lock,fasten the door
+door_lock,door lock now

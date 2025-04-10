@@ -120,64 +120,64 @@ async def delete_all_users(session: SessionDep) -> JSONResponse:
 
 
 
-class SetPinRequest(BaseModel):
-    token: str
-    pin_code: str
-
-@authRouter.post("/pin-setup")
-async def set_pin(request: SetPinRequest, session: Session = Depends(get_session)):
-    # Decode the token to get the user ID
-    decoded_token = decode_token(request.token)
-    user_id = decoded_token.get("id")
-
-    if not user_id:
-        raise HTTPException(status_code=400, detail="Invalid token")
-
-    # Fetch the user from the database
-    existing_user = session.query(User).filter(User.id == user_id).first()
-
-    if not existing_user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    if existing_user.pin_code:
-        raise HTTPException(status_code=400, detail="A PIN has already been set for this account")
-
-    # Hash the PIN and save it
-    hashed_pin = pwd_context.hash(request.pin_code)
-    existing_user.pin_code = hashed_pin
-
-    session.commit()
-
-    return JSONResponse(content={"message": "PIN code set successfully"}, status_code=201)
-
-
-class PinAuthRequest(BaseModel):
-    token: str
-    pin_code: str
-
-@authRouter.post("/pin-authentication")
-async def authenticate_pin(request: PinAuthRequest, session: Session = Depends(get_session)):
-    # Decode the token to get the user ID
-    decoded_token = decode_token(request.token)
-    user_id = decoded_token.get("id")
-
-    if not user_id:
-        raise HTTPException(status_code=400, detail="Invalid token")
-
-    # Fetch the user from the database
-    existing_user = session.query(User).filter(User.id == user_id).first()
-
-    if not existing_user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    if not existing_user.pin_code:
-        raise HTTPException(status_code=400, detail="No PIN has been set for this account")
-
-    # Verify the provided PIN with the stored hashed PIN
-    if not pwd_context.verify(request.pin_code, existing_user.pin_code):
-        raise HTTPException(status_code=400, detail="Invalid PIN")
-
-    return JSONResponse(content={"message": "PIN code authenticated successfully"}, status_code=200)
+# class SetPinRequest(BaseModel):
+#     token: str
+#     pin_code: str
+#
+# @authRouter.post("/pin-setup")
+# async def set_pin(request: SetPinRequest, session: Session = Depends(get_session)):
+#     # Decode the token to get the user ID
+#     decoded_token = decode_token(request.token)
+#     user_id = decoded_token.get("id")
+#
+#     if not user_id:
+#         raise HTTPException(status_code=400, detail="Invalid token")
+#
+#     # Fetch the user from the database
+#     existing_user = session.query(User).filter(User.id == user_id).first()
+#
+#     if not existing_user:
+#         raise HTTPException(status_code=404, detail="User not found")
+#
+#     if existing_user.pin_code:
+#         raise HTTPException(status_code=400, detail="A PIN has already been set for this account")
+#
+#     # Hash the PIN and save it
+#     hashed_pin = pwd_context.hash(request.pin_code)
+#     existing_user.pin_code = hashed_pin
+#
+#     session.commit()
+#
+#     return JSONResponse(content={"message": "PIN code set successfully"}, status_code=201)
+#
+#
+# class PinAuthRequest(BaseModel):
+#     token: str
+#     pin_code: str
+#
+# @authRouter.post("/pin-authentication")
+# async def authenticate_pin(request: PinAuthRequest, session: Session = Depends(get_session)):
+#     # Decode the token to get the user ID
+#     decoded_token = decode_token(request.token)
+#     user_id = decoded_token.get("id")
+#
+#     if not user_id:
+#         raise HTTPException(status_code=400, detail="Invalid token")
+#
+#     # Fetch the user from the database
+#     existing_user = session.query(User).filter(User.id == user_id).first()
+#
+#     if not existing_user:
+#         raise HTTPException(status_code=404, detail="User not found")
+#
+#     if not existing_user.pin_code:
+#         raise HTTPException(status_code=400, detail="No PIN has been set for this account")
+#
+#     # Verify the provided PIN with the stored hashed PIN
+#     if not pwd_context.verify(request.pin_code, existing_user.pin_code):
+#         raise HTTPException(status_code=400, detail="Invalid PIN")
+#
+#     return JSONResponse(content={"message": "PIN code authenticated successfully"}, status_code=200)
 
 
 
