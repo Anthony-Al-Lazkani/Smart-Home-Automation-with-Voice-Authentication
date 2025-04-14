@@ -40,7 +40,7 @@ device_action_mapping = {
     "heater_on": ("heater", True),
     "heater_off": ("heater", False),
     "door_lock": ("door", False),
-    "door_unlocked": ("door", True)
+    "door_unlock": ("door", True)
 }
 
 @voiceAuthRouter.post("/voice-upload")

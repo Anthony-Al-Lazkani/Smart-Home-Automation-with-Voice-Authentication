@@ -25,14 +25,15 @@ class MainActivity : ComponentActivity() {
             val navController = rememberNavController()
             NavHost(
                 navController = navController,
-                startDestination = "login"
+                startDestination = "main screen"
             ) {
                 composable("login") { LoginScreen(navController) }
                 composable("signup") { SignupScreen(navController) }
                 composable("home") { HomeScreen() }
                 composable("main screen") { MainScreen(navController) }
-                composable("settings") { SettingsScreen() }
+                composable("settings") { SettingsScreen(navController) }
                 composable("voice upload") { VoiceAuthScreen(navController) }
+                composable("reset password") { ResetPasswordScreen(navController) }
             }
 //            SpeechToTextScreen()
         }

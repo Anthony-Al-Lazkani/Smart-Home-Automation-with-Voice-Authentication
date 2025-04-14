@@ -67,6 +67,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.test.objects.PinManager
 import kotlinx.coroutines.coroutineScope
 import org.json.JSONObject
 import retrofit2.HttpException
@@ -353,7 +354,8 @@ fun DeviceCard(
     val controlApi = RetrofitInstance.getManualControlApi()
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
-    var loading by remember { mutableStateOf(false) }
+    var light_loading by remember { mutableStateOf(false) }
+    var heater_loading by remember { mutableStateOf(false) }
     Card(
         modifier = Modifier
             .size(width = 150.dp, height = 180.dp)
@@ -372,19 +374,32 @@ fun DeviceCard(
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    painter = painterResource(id = iconRes),
-                    contentDescription = null,
-                    tint = device.textColor,
-                    modifier = Modifier.size(28.dp)
-                )
+
+                    Icon(
+                        painter = painterResource(id = iconRes),
+                        contentDescription = null,
+                        tint = device.textColor,
+                        modifier = Modifier.size(28.dp)
+                    )
+
+
+
+                Spacer(modifier = Modifier.width(110.dp))
 
                 // Only show the green dot if the device has a toggle and the button is enabled
-                if (device.hasToggle && isButtonEnabled) {
+                if (device.isOn) {
                     Box(
                         modifier = Modifier
-                            .size(10.dp)
+                            .size(12.dp)
                             .background(Color.Green, CircleShape)
+                            .offset(x = 30.dp, y = 3.dp)  // Apply offset to position the dot
+                    )
+                }
+                else{
+                    Box(
+                        modifier = Modifier
+                            .size(12.dp)
+                            .background(Color.Red, CircleShape)
                             .offset(x = 30.dp, y = 3.dp)  // Apply offset to position the dot
                     )
                 }
@@ -410,7 +425,7 @@ fun DeviceCard(
                             onClick = {
                                 // Toggle button state light
                                 coroutineScope.launch {
-                                    loading = true
+                                    light_loading = true
                                     try {
                                         if (device.isOn) {
                                             val response = controlApi.controlDevice("lights_off")
@@ -436,18 +451,18 @@ fun DeviceCard(
                                     } catch (e: Exception) {
                                         Toast.makeText(context, "An unknown error occurred: ${e.message}", Toast.LENGTH_LONG).show()
                                     } finally {
-                                        loading = false
+                                        light_loading = false
                                     }
                                 }
 
                             },
-                            enabled = !loading,
+                            enabled = !light_loading,
                             shape = CircleShape,
                             colors = ButtonDefaults.buttonColors(containerColor = Color.White),
                             modifier = Modifier.fillMaxSize(), // Fill the box size to ensure the button takes full space
                             contentPadding = PaddingValues(2.dp)
                         ) {
-                            if (loading) {
+                            if (light_loading) {
                                 CircularProgressIndicator(
                                     color = Color.White,
                                     strokeWidth = 2.dp,
@@ -530,6 +545,78 @@ fun DeviceCard(
                     }
                 }
             }
+            else{
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // First button: toggles ON/OFF and enables/disables the other buttons
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp) // Size of the button
+                    ) {
+                        Button(
+                            onClick = {
+                                // Toggle button state light
+                                coroutineScope.launch {
+                                    heater_loading = true
+                                    try {
+                                        if (device.isOn) {
+                                            val response = controlApi.controlDevice("heater_off")
+                                        } else {
+                                            val response = controlApi.controlDevice("heater_on")
+                                        }
+                                    } catch (e: HttpException) {
+                                        try {
+                                            // Extract the error message from the error body
+                                            val errorBody = e.response()?.errorBody()?.string()
+                                            val jsonObject = errorBody?.let {
+                                                JSONObject(it)
+                                            } ?: JSONObject() // Fallback to an empty JSONObject if errorBody is null
+
+                                            val errorMessage = jsonObject.optString("detail", "An error occurred")
+
+                                            // Show error as a toast message, ensure errorMessage is non-null
+                                            Toast.makeText(context, errorMessage ?: "An error occurred", Toast.LENGTH_LONG).show()
+                                        } catch (jsonException: Exception) {
+                                            // If JSON parsing fails, show a generic message
+                                            Toast.makeText(context, "An error occurred while parsing the response.", Toast.LENGTH_LONG).show()
+                                        }
+                                    } catch (e: Exception) {
+                                        Toast.makeText(context, "An unknown error occurred: ${e.message}", Toast.LENGTH_LONG).show()
+                                    } finally {
+                                        heater_loading = false
+                                    }
+                                }
+
+                            },
+                            enabled = !heater_loading,
+                            shape = CircleShape,
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                            modifier = Modifier.fillMaxSize(), // Fill the box size to ensure the button takes full space
+                            contentPadding = PaddingValues(2.dp)
+                        ) {
+                            if (heater_loading) {
+                                CircularProgressIndicator(
+                                    color = Color.White,
+                                    strokeWidth = 2.dp,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            } else {
+                                Text(
+                                    text = if (isButtonEnabled) "ON" else "OFF",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.Black
+                                )
+                            }
+
+                        }
+                    }
+                }
+
+            }
         }
     }
 }
@@ -586,6 +673,7 @@ fun SecurityModeWidget() {
 fun DoorUnlockScreen() {
     var pin by remember { mutableStateOf("") }
     var isDialogOpen by remember { mutableStateOf(false) }
+    var context = LocalContext.current
 
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -593,7 +681,14 @@ fun DoorUnlockScreen() {
     ) {
         // Main content - Unlock Button
         Button(
-            onClick = { isDialogOpen = true }, // Open the dialog when clicked
+            onClick = {
+                val doesPinExist = PinManager.isPinSet(context)
+                if (!doesPinExist) {
+                    Toast.makeText(context, "Pin is not Setup ! Please go to settings and setup a pin", Toast.LENGTH_LONG).show()
+                } else {
+                    isDialogOpen = true
+                }
+                      },
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF101C43)),
             modifier = Modifier.height(70.dp)
                 .padding(start = 3.dp)
@@ -644,9 +739,13 @@ fun DoorUnlockScreen() {
                 confirmButton = {
                     Button(
                         onClick = {
-                            // Handle pin submission logic
-                            println("Pin entered: $pin")
-                            isDialogOpen = false // Close the dialog
+                            val isPinCorrect = PinManager.verifyPin(context, pin)
+                            if (!isPinCorrect) {
+                                Toast.makeText(context, "Pin is not Incorrect !", Toast.LENGTH_LONG).show()
+                            }else {
+                                Toast.makeText(context, "Pin is not Correct !", Toast.LENGTH_LONG).show()
+                                isDialogOpen = false
+                            }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2A6FCF)),
                         modifier = Modifier.padding(start = 38.dp)
@@ -717,3 +816,9 @@ fun SmartHomeDonutChart(
         )
     }
 }
+
+//@Preview(background = true)
+//@Composable
+//fun HomeScreenp{
+//    HomeScreen()
+//}

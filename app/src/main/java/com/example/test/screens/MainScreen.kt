@@ -1,8 +1,6 @@
 package com.example.test.screens
 
-import android.media.MediaPlayer
 import android.media.MediaRecorder
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -28,15 +26,8 @@ import com.example.test.objects.TokenManager
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
-import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
-import okhttp3.ResponseBody
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
-import retrofit2.http.Multipart
-import retrofit2.http.POST
-import retrofit2.http.Part
 import java.io.File
 
 data class BottomNavigationItem(
@@ -203,15 +194,16 @@ fun MainScreen(navController: NavController) {
                 }
             }
         ) { innerPadding ->
-            ContentScreen(modifier = Modifier.padding(innerPadding), selectedItemIndex)
+            navController
+            ContentScreen(modifier = Modifier.padding(innerPadding), selectedItemIndex, navController)
         }
     }
 }
 
 @Composable
-fun ContentScreen(modifier: Modifier = Modifier, selectedItemIndex: Int) {
+fun ContentScreen(modifier: Modifier = Modifier, selectedItemIndex: Int, navController: NavController) {
     when (selectedItemIndex) {
         0 -> HomeScreen()
-        1 -> SettingsScreen()
+        1 -> SettingsScreen(navController)
     }
 }

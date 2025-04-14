@@ -52,6 +52,7 @@ dependencies {
     implementation ("com.squareup.okhttp3:okhttp:4.9.0")
     implementation ("androidx.appcompat:appcompat:1.3.1")
     implementation ("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
+    implementation ("androidx.security:security-crypto:1.1.0-alpha06")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

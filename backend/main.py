@@ -14,7 +14,7 @@ from serialCommunicationUtils import open_serial_connection, close_serial_connec
 
 app = FastAPI()
 
-isConnected = True
+isConnected = False
 
 
 @app.on_event("startup")

@@ -36,7 +36,7 @@ import com.example.test.api.ResetPasswordRequest
 
 
 @Composable
-fun ResetPasswordScreen() {
+fun ResetPasswordScreen(navController: NavController) {
     var old_password by remember { mutableStateOf("") }
     var new_password by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf("") }
@@ -125,7 +125,7 @@ fun ResetPasswordScreen() {
                                 ResetPasswordRequest(token, old_password, new_password)
                             )
                             Toast.makeText(context, response.message, Toast.LENGTH_LONG).show()
-//                            navController.navigate("main screen")
+                            navController.navigate("settings")
                         }catch (e: HttpException) {
                             try {
                                 // Extract the error message from the error body

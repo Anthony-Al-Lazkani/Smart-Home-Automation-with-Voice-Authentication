@@ -3,7 +3,7 @@ import time
 
 ser: serial.Serial | None = None
 
-def open_serial_connection(port='/dev/ttyACM1', baudrate=9600, timeout=1.0):
+def open_serial_connection(port='/dev/ttyACM0', baudrate=9600, timeout=1.0):
     """
     Opens the serial connection and returns the serial object.
     """
