@@ -1,3 +1,5 @@
+import asyncio
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -7,32 +9,35 @@ from routes.nlpRoutes import nlpRouter
 from routes.voiceAuthRoutes import voiceAuthRouter
 from routes.accountManagementRoutes import accountManagementRouter
 from routes.deviceManagementRoutes import deviceManagementRouter
+from routes.timerRoutes import timerRouter
 from database import create_db_and_tables
 
 # utils
-from serialCommunicationUtils import open_serial_connection, close_serial_connection
+from serialCommunicationUtils import open_serial_connection, close_serial_connection, start_listener_thread, \
+    stop_listener
 
 app = FastAPI()
 
-isConnected = False
+isConnected = True
+
 
 
 @app.on_event("startup")
 def on_startup():
     create_db_and_tables()
     if isConnected:
-        open_serial_connection()
+        start_listener_thread()
 
 @app.on_event("shutdown")
 def shutdown_event():
     if isConnected:
-        close_serial_connection()
-
+        stop_listener()
 
 app.include_router(authRouter, prefix="/auth")
 app.include_router(nlpRouter, prefix="/nlp")
 app.include_router(voiceAuthRouter, prefix="/voice-auth")
 app.include_router(accountManagementRouter, prefix="/account")
+app.include_router(timerRouter, prefix="/timer")
 app.include_router(deviceManagementRouter)
 
 

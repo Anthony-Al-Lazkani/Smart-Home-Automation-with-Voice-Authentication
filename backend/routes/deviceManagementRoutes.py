@@ -27,7 +27,7 @@ device_action_mapping = {
     "heater_on": ("heater", True),
     "heater_off": ("heater", False),
     "door_lock": ("door", False),
-    "door_unlocked": ("door", True)
+    "door_unlock": ("door", True)
 }
 
 # Add a new device
@@ -74,23 +74,6 @@ async def delete_device(device_name: str, session: SessionDep) -> JSONResponse:
     )
 
 
-# Update a device's status
-async def update_device_status(device_name: str, device_status: bool,
-                               session: SessionDep) -> bool:
-    # Find device by name
-    device = session.exec(select(Device).where(Device.device_name == device_name)).first()
-
-    if not device:
-        return False
-
-    # Update the device status
-    device.status = device_status
-    device.last_updated = datetime.now(timezone.utc)  # Update timestamp
-    session.commit()
-    session.refresh(device)
-
-    return True
-
 
 # Get all devices
 @deviceManagementRouter.get("/devices")
@@ -124,23 +107,50 @@ async def get_device(device_name: str, session: SessionDep) -> JSONResponse:
 
 
 # Control a device manually
+# @deviceManagementRouter.post("/device/{command}")
+# async def manual_control(session: SessionDep, command : str):
+#     arduino_response = send_message(command)
+#
+#     if not arduino_response:
+#         raise HTTPException(status_code=400, detail="Arduino could not execute the requested command")
+#
+#     device_info = device_action_mapping.get(command)
+#     if not device_info:
+#         return JSONResponse(
+#             content={"message": "Invalid command", "isAuthenticated": True},
+#             status_code=400
+#         )
+#     device_name, device_status = device_info
+#     response = await update_device_status(device_name, device_status, session)
+#
+#     if not response:
+#         raise HTTPException(status_code=404, detail="Device not found")
+#
+#     return JSONResponse(status_code=200, content={"message" : "Device updated successfully"})
+
+
 @deviceManagementRouter.post("/device/{command}")
-async def manual_control(session: SessionDep, command : str):
-    arduino_response = send_message(command)
-
-    if not arduino_response:
-        raise HTTPException(status_code=400, detail="Arduino could not execute the requested command")
-
-    device_info = device_action_mapping.get(command)
-    if not device_info:
-        return JSONResponse(
-            content={"message": "Invalid command", "isAuthenticated": True},
-            status_code=400
-        )
-    device_name, device_status = device_info
-    response = await update_device_status(device_name, device_status, session)
-
-    if not response:
-        raise HTTPException(status_code=404, detail="Device not found")
-
+async def manual_control(command : str):
+    send_message(command)
     return JSONResponse(status_code=200, content={"message" : "Device updated successfully"})
+
+@deviceManagementRouter.get("/device-summary")
+async def get_device_summary(session: SessionDep) -> JSONResponse:
+    devices = session.exec(select(Device)).all()
+
+    if not devices:
+        raise HTTPException(status_code=404, detail="No devices found")
+
+    total_devices = len(devices)
+    devices_on = sum(1 for device in devices if device.status)
+    percentage_on = (devices_on / total_devices) if total_devices > 0 else 0
+
+    return JSONResponse(
+        content={
+            "total_devices": total_devices,
+            "devices_on": devices_on,
+            "percentage_on": percentage_on
+        },
+        status_code=200
+    )
+

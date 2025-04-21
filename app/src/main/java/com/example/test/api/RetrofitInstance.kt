@@ -41,4 +41,16 @@ object RetrofitInstance {
     fun getManualControlApi() : ManualControlApi {
         return getInstance().create(ManualControlApi::class.java)
     }
+
+    fun getDevicesSummaryApi() : DevicesSummaryApi {
+        return getInstance().create(DevicesSummaryApi::class.java)
+    }
+
+    fun getDeviceTimerApi(): DeviceTimerApi {
+        return getInstance().create(DeviceTimerApi::class.java)
+    }
+
+    fun getFetchTimerApi() : FetchTimerApi {
+        return getInstance().create(FetchTimerApi::class.java)
+    }
 }

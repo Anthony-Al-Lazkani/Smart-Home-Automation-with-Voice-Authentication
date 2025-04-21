@@ -1,10 +1,11 @@
 package com.example.test.screens
 
-
+import android.app.TimePickerDialog
+import android.content.Context
 import android.widget.Toast
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,7 +19,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -27,18 +28,26 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,16 +56,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
@@ -67,15 +73,37 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.test.api.DeviceSummary
+import com.example.test.api.DeviceTimer
+import com.example.test.api.SetDeviceTimerRequest
+//import com.example.test.objects.DeviceTimer
 import com.example.test.objects.PinManager
+//import com.example.test.objects.TimerManager
+import com.google.gson.Gson
 import kotlinx.coroutines.coroutineScope
-import org.json.JSONObject
 import retrofit2.HttpException
+import kotlin.concurrent.timer
+import org.json.JSONArray
+import org.json.JSONObject
+import retrofit2.Retrofit
 
 val deviceApi = RetrofitInstance.getDeviceApi()
+val devicesSummaryApi = RetrofitInstance.getDevicesSummaryApi()
 
 class DeviceViewModel : ViewModel() {
     var devices by mutableStateOf<List<com.example.test.api.Device>>(emptyList())
+        private set
+
+    var totalDevices by mutableStateOf(0)
+        private set
+
+    var devicesOn by mutableStateOf(0)
+        private set
+
+    var percentageOn by mutableStateOf(0f)
+        private set
+
+    var error by mutableStateOf<String?>(null)
         private set
 
     init {
@@ -88,20 +116,32 @@ class DeviceViewModel : ViewModel() {
                 try {
                     val response = deviceApi.getAllDevices()
                     devices = response.devices
+
+                    val responseSummary = devicesSummaryApi.getDeviceSummary()
+                    if (responseSummary.isSuccessful) {
+                        responseSummary.body()?.let { summary ->
+                            totalDevices = summary.total_devices
+                            devicesOn = summary.devices_on
+                            percentageOn = summary.percentage_on
+                        }
+                    } else {
+                        error = "Failed to fetch summary: ${responseSummary.code()}"
+                    }
                 } catch (e: Exception) {
                     // Optional: handle error here
+                    error = "Error: ${e.localizedMessage}"
                 }
                 delay(5000)
             }
 
         }
     }
+    fun clearError() {
+        error = null
+    }
 }
 
 
-
-
-val DarkBlue = Color(0xFF0A1A3D)
 data class DeviceStatus(val label: String, val percentage: Float, val color: Color)
 
 
@@ -123,66 +163,508 @@ data class Device(
     val color: Color,
     val textColor: Color,
     val hasToggle: Boolean,
-    val showButtons: Boolean
+    val showButtons: Boolean,
+    val isDoor: Boolean
 )
 
-
-//get devices from json
-//@Composable
-//fun getDevicesWithStateFromJson(jsonElement: JsonElement): MutableState<List<Pair<Device, Int>>> {
-//    // Extract the 'devices' array from the JSON element
-//    val devices = remember(jsonElement) {
-//        val deviceList = mutableListOf<DeviceJson>()
-//        val devicesJsonArray = jsonElement.jsonObject["devices"]?.jsonArray
-//
-//        devicesJsonArray?.forEach { deviceJsonElement ->
-//            val deviceJson = deviceJsonElement.jsonObject
-//            val device = DeviceJson(
-//                status = deviceJson["status"]?.jsonPrimitive?.boolean ?: false,
-//                device_name = deviceJson["device_name"]?.jsonPrimitive?.content ?: "",
-//                id = deviceJson["id"]?.jsonPrimitive?.int ?: 0,
-//                last_updated = deviceJson["last_updated"]?.jsonPrimitive?.content ?: ""
-//            )
-//            deviceList.add(device)
-//        }
-//        deviceList
-//    }
-//
-//    val devicesState = remember(devices) {
-//        mutableStateOf(
-//            listOf(
-//                Device("Smart Light", "Bedroom", devices.find { it.device_name == "lights" }?.status ?: false, Color(0xFF101C43), Color.White, true, showButtons = false) to R.drawable.hang_lamp,
-//                Device("Smart Fan", "Living Room", devices.find { it.device_name == "fan" }?.status ?: false, Color(0xFF101C43), Color.White, false, showButtons = true) to R.drawable.fan,
-//                Device("Smart Heater", "Living Room", devices.find { it.device_name == "heater" }?.status ?: false, Color(0xFF101C43), Color.White, false, showButtons = false) to R.drawable.heater_icon,
-//            )
-//        )
-//    }
-//
-//    return devicesState
-//}
 
 @Composable
 fun getDevicesWithState(devices: List<com.example.test.api.Device>): MutableState<List<Pair<Device, Int>>> {
     val devicesState = remember(devices) {
         mutableStateOf(
             listOf(
-                Device("Smart Light", "Bedroom", devices.find { it.device_name == "lights" }?.status ?: false, Color(0xFF101C43), Color.White, true, showButtons = false) to R.drawable.hang_lamp,
-                Device("Smart Fan", "Living Room", devices.find { it.device_name == "fan" }?.status ?: false, Color(0xFF101C43), Color.White, false, showButtons = true) to R.drawable.fan,
-                Device("Smart Heater", "Living Room", devices.find { it.device_name == "heater" }?.status ?: false, Color(0xFF101C43), Color.White, false, showButtons = false) to R.drawable.heater_icon,
-            )
+                Device("Smart Light", "Bedroom", devices.find { it.device_name == "lights" }?.status ?: false, Color(0xFF101C43), Color.White, true, showButtons = false,isDoor = false) to R.drawable.hang_lamp,
+                Device("Smart Fan", "Living Room", devices.find { it.device_name == "fan" }?.status ?: false, Color(0xFF101C43), Color.White, false, showButtons = true,isDoor = false) to R.drawable.fan,
+                Device("Smart Heater", "Living Room", devices.find { it.device_name == "heater" }?.status ?: false, Color(0xFF101C43), Color.White, false, showButtons = false,isDoor = false) to R.drawable.heater_icon,
+                Device("Smart Door", "House", devices.find { it.device_name == "door" }?.status ?: false, Color(0xFF101C43), Color.White, false, showButtons = false,isDoor = true) to R.drawable.door_opened,
+
+                )
         )
     }
 
     return devicesState
 }
 
+@Composable
+fun SecurityModeWidget() {
+    var isEnabled by remember { mutableStateOf(false) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(2.dp)
+            .background(color = Color(0xFF101C43), shape = RoundedCornerShape(12.dp))
+            .padding(16.dp) // Internal padding
+    )
+    {
+        val security = false  // boolean lal activation sammiya security
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (security){
+                    Image(
+                        painter = painterResource(id = R.drawable.security_icon),
+                        contentDescription = "Security Mode Icon",
+                        modifier = Modifier.size(24.dp),
+                        colorFilter = ColorFilter.tint(Color.Green)
+                    )
+                }
+                else {
+                    Image(
+                        painter = painterResource(id = R.drawable.security_icon),
+                        contentDescription = "Security Mode Icon",
+                        modifier = Modifier.size(24.dp),
+                        colorFilter = ColorFilter.tint(Color.Red)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Text("Security Mode", color = Color.White, fontSize = 18.sp)
+
+                    Text(
+                        if (security) "Enabled" else "Disabled",
+                        color = Color.Gray,
+                        fontSize = 14.sp
+                    )
+                }
+            }
+            Box(
+                modifier = Modifier
+                    .width(70.dp)
+                    .height(36.dp)// Size of the button // Size of the button
+            ) {
+                Button(
+                    onClick = {
+                        //Security mode logic
+
+                    },
+                    shape = CircleShape,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                    modifier = Modifier.fillMaxWidth(), // Fill the box size to ensure the button takes full space
+                    contentPadding = PaddingValues(2.dp)
+                ) {
+//                if (Security_loading) {
+//                    CircularProgressIndicator(
+//                        color = Color.White,
+//                        strokeWidth = 2.dp,
+//                        modifier = Modifier.size(24.dp)
+//                    )
+//                } else {
+
+                    Text(
+                        text = if (security) "ON" else "OFF",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+//                }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DashboardCard() {
+    val viewModel: DeviceViewModel = viewModel()
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start =6.dp, end = 6.dp)
+    ) {
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.White, RoundedCornerShape(20.dp))
+                .padding(20.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column {
+                    Text(
+                        text = "Home Appliances",
+                        fontSize = 21.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "${viewModel.devicesOn}/${viewModel.totalDevices} devices on",
+                        fontSize = 15.sp,
+                        color = Color.Gray
+                    )
+                }
+                CircularProgressWithText(progress = viewModel.percentageOn)
+            }
+        }
+    }
+}
+
+@Composable
+fun CircularProgressWithText(progress: Float) {
+    Box(contentAlignment = Alignment.Center) {
+        CircularProgressIndicator(
+            progress = progress,
+            strokeWidth = 8.dp,
+            color = Color(0xFF4CAF50), // Green
+            modifier = Modifier.size(70.dp)
+        )
+        Text(
+            text = "${(progress * 100).toInt()}%",
+            fontWeight = FontWeight.Bold,
+            color = Color.Black
+        )
+    }
+}
+
+
+@Composable
+fun TimerCard() {
+    var context = LocalContext.current
+    var showDialog by remember { mutableStateOf(false) }
+    var timerDeviceList by remember { mutableStateOf<List<DeviceTimer>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(false) }
+    val fetchTimers = RetrofitInstance.getFetchTimerApi()
+
+    // Coroutine scope for async tasks
+    val coroutineScope = rememberCoroutineScope()
+
+    // Function to fetch data from the API
+    fun fetchTimers() {
+        coroutineScope.launch {
+            isLoading = true
+            try {
+                val response = fetchTimers.getAllTimers()
+                if (response.isSuccessful) {
+                    // Get the list of timers from the response
+                    timerDeviceList = response.body()?.deviceTimers ?: emptyList()
+                } else {
+                    // Handle error
+                    Toast.makeText(context, "Failed to fetch timers", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, "Error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    // Call fetchTimers when the composable is first loaded
+    LaunchedEffect(Unit) {
+        fetchTimers()
+    }
+
+    Box(
+        modifier = Modifier
+            .padding(horizontal = 4.dp)
+            .background(Color(0xFF101C43), shape = RoundedCornerShape(12.dp))
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            // Row for placing the Set Timer button and Refresh button at top-right corner
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Button(
+                    onClick = { showDialog = true },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                    shape = RoundedCornerShape(50),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Add Icon",
+                        tint = Color.Black,
+                        modifier = Modifier
+                            .size(20.dp)
+                            .padding(end = 4.dp)
+                    )
+                    Text(
+                        text = "Set Timer",
+                        color = Color.Black,
+                        fontSize = 12.sp
+                    )
+                }
+
+                // Refresh Button positioned top-right beside Set Timer button
+                IconButton(onClick = { fetchTimers() }) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Refresh Timers",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Header row - Columns for deviceType, onTime, offTime
+            Row(modifier = Modifier.fillMaxWidth()) {
+                listOf("Device Type", "On Time", "Off Time").forEach { header ->
+                    Text(
+                        text = header,
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(4.dp)
+                    )
+                }
+            }
+
+            // Data rows - Displaying timer information
+            if (isLoading) {
+                Text("Loading timers...", color = Color.White)
+            } else {
+                for (timer in timerDeviceList) {
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = timer.device_type,
+                            color = Color.White,
+                            fontSize = 13.sp,
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(4.dp)
+                        )
+                        Text(
+                            text = timer.on_time ?: "-",
+                            color = Color.White,
+                            fontSize = 13.sp,
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(4.dp)
+                        )
+                        Text(
+                            text = timer.off_time ?: "-",
+                            color = Color.White,
+                            fontSize = 13.sp,
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(4.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    // Show the timer dialog if needed
+    if (showDialog) {
+        TimerPopup(onDismiss = { showDialog = false })
+    }
+}
+
+@Composable
+fun TimerPopup(onDismiss: () -> Unit) {
+    var selectedDevice by remember { mutableStateOf("Device") }
+    var expanded by remember { mutableStateOf(false) }
+    var coroutineScope = rememberCoroutineScope()
+    var deviceTimerApi = RetrofitInstance.getDeviceTimerApi()
+    var setTimerLoading by remember { mutableStateOf(false) }
+
+    var onTime by remember { mutableStateOf("") }
+    var offTime by remember { mutableStateOf("") }
+
+    val context = LocalContext.current
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {},
+        text = {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Close",
+                    tint = Color.Black,
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .padding(bottom = 8.dp)
+                        .clickable {
+                            onDismiss()
+                        }
+                )
+
+                Text(
+                    text = "Set Timer",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                Text(text = "Device", fontWeight = FontWeight.SemiBold)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                        .background(Color(0xFFF5F7FA), shape = RoundedCornerShape(12.dp))
+                        .clickable { expanded = true }
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = selectedDevice)
+                        Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+                    }
+
+                    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                        listOf("lights", "fan", "heater").forEach {
+                            DropdownMenuItem(text = { Text(it) }, onClick = {
+                                selectedDevice = it
+                                expanded = false
+                            })
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("On time", fontWeight = FontWeight.SemiBold)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(end = 4.dp, top = 4.dp)
+                                .background(Color(0xFFF5F7FA), shape = RoundedCornerShape(12.dp))
+                                .clickable {
+                                    TimePickerDialog(
+                                        context,
+                                        { _, hour, minute ->
+                                            onTime = String.format("%02d:%02d", hour, minute)
+                                        },
+                                        10, 0, true
+                                    ).show()
+                                }
+                                .padding(12.dp)
+                        ) {
+                            Text(onTime)
+                        }
+                    }
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Off time", fontWeight = FontWeight.SemiBold)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 4.dp, top = 4.dp)
+                                .background(Color(0xFFF5F7FA), shape = RoundedCornerShape(12.dp))
+                                .clickable {
+                                    TimePickerDialog(
+                                        context,
+                                        { _, hour, minute ->
+                                            offTime = String.format("%02d:%02d", hour, minute)
+                                        },
+                                        11, 0, true
+                                    ).show()
+                                }
+                                .padding(12.dp)
+                        ) {
+                            Text(offTime)
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = {
+                        setTimerLoading = true
+                        if (onTime.isBlank() && offTime.isBlank()) {
+                            Toast.makeText(context, "Please set at least one time", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        if (selectedDevice == "Device") {
+                            Toast.makeText(context, "Please select a device", Toast.LENGTH_LONG).show()
+                            return@Button
+                        }
+                        coroutineScope.launch {
+                            try {
+                                val response = deviceTimerApi.setDeviceTimer(
+                                    deviceType = selectedDevice,
+                                    timerRequest = SetDeviceTimerRequest(
+                                        on_time = if (onTime.isBlank()) null else onTime,
+                                        off_time = if (offTime.isBlank()) null else offTime
+                                    )
+                                )
+
+                                if (response.isSuccessful) {
+                                    Toast.makeText(context, "Timer updated successfully", Toast.LENGTH_SHORT).show()
+                                    onDismiss()
+                                } else {
+                                    val error = response.errorBody()?.string()
+                                    val errorMessage = JSONObject(error ?: "{}").optString("detail", "Something went wrong")
+                                    Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+                                }
+                            } catch (e: HttpException) {
+                                val error = e.response()?.errorBody()?.string()
+                                val errorMessage = JSONObject(error ?: "{}").optString("detail", "An error occurred")
+                                Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "An unexpected error occurred: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                            } finally {
+                                setTimerLoading = false
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    enabled = !setTimerLoading,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF032B91))
+                ) {
+                    if (setTimerLoading) {
+                        CircularProgressIndicator(
+                            color = Color.White,
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    } else {
+                        Text("Set Timer", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+
+                }
+            }
+        },
+        containerColor = Color.White,
+        shape = RoundedCornerShape(20.dp)
+    )
+}
+
+
 
 @Composable
 fun HomeScreen(modifier: Modifier = Modifier, viewModel: DeviceViewModel = viewModel()) {
     val scrollState = rememberScrollState()
     val devices = viewModel.devices
-//    val devicesState = getDevicesWithStateFromJson(devices)
     val devicesState = getDevicesWithState(devices)
+    val context = LocalContext.current
+//    var timers by remember { mutableStateOf(listOf<DeviceTimer>()) }
 
 
     Box(
@@ -200,82 +682,14 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: DeviceViewModel = viewM
             Text(text = "Hey, User!", fontSize = 24.sp, fontWeight = FontWeight.Normal, color = Color.White)
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Weather Card
-            Box(modifier = Modifier.fillMaxWidth()) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF2F2F2)),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Column(modifier = Modifier.padding(end = 16.dp)) {
-                                Text(text = "Cloudy", fontSize = 21.sp, color = Color.Black)
-                                Text(text = " 30°", fontSize = 30.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .width(1.dp)
-                                    .height(40.dp)
-                                    .background(Color.Black)
-                            )
-                            Column(modifier = Modifier.padding(start = 16.dp)) {
-                                Text(text = "Monday, 2 May 2025", fontSize = 14.sp, color = Color.Black)
-                                Text(text = "Beirut, Metn", fontSize = 14.sp, color = Color.Black)
-                            }
-                        }
-                    }
-                }
-
-                Image(
-                    painter = painterResource(id = R.drawable.weather_icon),
-                    contentDescription = "Weather Icon",
-                    modifier = Modifier
-                        .size(120.dp)
-                        .align(Alignment.TopEnd)
-                        .offset(y = (-40).dp, x = 20.dp)
-                        .padding(end = 4.dp),
-                    contentScale = ContentScale.Fit
-                )
-            }
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            // Device Filters
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 10.dp)
-            ) {
-                Button(
-                    onClick = { /* All Devices */ },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2A6FCF)),
-                    modifier = Modifier.widthIn(min = 0.dp)
-                ) {
-                    Text(text = "All devices", color = Color.White)
-                }
-
-                Button(
-                    onClick = { /* Bedroom */ },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                    modifier = Modifier.widthIn(min = 0.dp)
-                ) {
-                    Text(text = "Bedroom", color = Color.Black)
-                }
-
-                Button(
-                    onClick = { /* Living Room */ },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                    modifier = Modifier.widthIn(min = 0.dp)
-                ) {
-                    Text(text = "Living", color = Color.Black)
-                }
-            }
+            DashboardCard()
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            DoorUnlockScreen()
+            //DoorUnlockScreen()
+            SensorWidgetRow()
+            Spacer(modifier = Modifier.height(3.dp))
+            TimerCard()
 
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
@@ -303,39 +717,80 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: DeviceViewModel = viewM
                             println("${device.name} clicked for navigation")
                         },
                         showButtons = true,
-                        isButtonEnabled = device.isOn
+                        isButtonEnabled = device.isOn,
+                        isDoor = false
                     )
                 }
             }
 
             SecurityModeWidget()
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(250.dp), // prevent it from overflowing and allows scroll
-                contentAlignment = Alignment.Center
-            ) {
-                val smartHomeData = listOf(
-                    DeviceStatus("Lights", 40f, Color(0xFFE91E63)),
-                    DeviceStatus("Fans", 25f, Color(0xFFFFC107)),
-                    DeviceStatus("AC", 15f, Color(0xFF4CAF50)),
-                    DeviceStatus("Heater", 10f, Color(0xFF2196F3)),
-                    DeviceStatus("Others", 10f, Color(0xFF9C27B0))
-                )
+//            Column(
+//                modifier = Modifier
+//                    .fillMaxSize()
+//                    .padding(16.dp)
+//            ) {
+//                Button(onClick = {
+//                    val testTimer = listOf(
+//                        DeviceTimer("fan", "09:30", "11:30")
+//                    )
+//                    TimerManager.saveTimers(context = context, timers = testTimer)
+//                }) {
+//                    Text("Set Test Timer for lights 16:45")
+//                }
+//            }
+            Spacer(modifier = Modifier.height(55.dp))
 
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    SmartHomeDonutChart(data = smartHomeData)
-                }
-            }
+//            Button(onClick = {
+//                timers = TimerManager.getTimers(context)
+//                val timersJson = Gson().toJson(timers)
+//                println("timers: $timers") // Log the timers to the console
+//                println("timers: $timersJson") // Log the timers to the console
+//            }) {
+//                Text("Show Timers")
+//            }
+
         }
     }
 }
 
+
+@Composable
+fun SensorWidgetRow() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 5.dp),
+        horizontalArrangement = Arrangement.Absolute.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        SensorBox(title = "Temp", value = "26°C")
+        SensorBox(title = "Humidity", value = "60%")
+        SensorBox(title = "Pressure", value = "1012 hPa")
+    }
+}
+
+@Composable
+fun SensorBox(title: String, value: String) {
+    Box(
+        modifier = Modifier
+            .width(113.dp)
+            .background(Color(0xFF101C43), RoundedCornerShape(12.dp))
+            .padding(vertical = 12.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(text = title, color = Color.White, fontSize = 14.sp)
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = value,
+                color = Color(0xFF64FFDA),
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
 
 
 
@@ -346,7 +801,8 @@ fun DeviceCard(
     onToggle: (Boolean) -> Unit,
     onArrowClick: () -> Unit,
     showButtons: Boolean,
-    isButtonEnabled: Boolean
+    isButtonEnabled: Boolean,
+    isDoor: Boolean
 ) {
     var isChecked by remember { mutableStateOf(device.isOn) }
 //    var isButtonEnabled by remember { mutableStateOf(false) }  // Track if the buttons should be enabled or not
@@ -356,6 +812,8 @@ fun DeviceCard(
     val context = LocalContext.current
     var light_loading by remember { mutableStateOf(false) }
     var heater_loading by remember { mutableStateOf(false) }
+    var door_loading by remember { mutableStateOf(false) }
+    var confirm_door_loading by remember { mutableStateOf(false) }
     Card(
         modifier = Modifier
             .size(width = 150.dp, height = 180.dp)
@@ -375,12 +833,12 @@ fun DeviceCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
 
-                    Icon(
-                        painter = painterResource(id = iconRes),
-                        contentDescription = null,
-                        tint = device.textColor,
-                        modifier = Modifier.size(28.dp)
-                    )
+                Icon(
+                    painter = painterResource(id = iconRes),
+                    contentDescription = null,
+                    tint = device.textColor,
+                    modifier = Modifier.size(28.dp)
+                )
 
 
 
@@ -419,7 +877,8 @@ fun DeviceCard(
                     // First button: toggles ON/OFF and enables/disables the other buttons
                     Box(
                         modifier = Modifier
-                            .size(36.dp) // Size of the button
+                            .width(70.dp)
+                            .height(36.dp)// Size of the button // Size of the button
                     ) {
                         Button(
                             onClick = {
@@ -496,7 +955,8 @@ fun DeviceCard(
                         enabled = true,
                         shape = CircleShape,
                         colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                        modifier = Modifier.size(36.dp),
+                        modifier = Modifier.width(70.dp)
+                            .height(36.dp),// Size of the button
                         contentPadding = PaddingValues(2.dp)
                     ) {
                         Text(
@@ -545,6 +1005,220 @@ fun DeviceCard(
                     }
                 }
             }
+            else if (device.isDoor) {
+                var pin by remember { mutableStateOf("") }
+                var isDialogOpen by remember { mutableStateOf(false) }
+                var context = LocalContext.current
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // First button: toggles ON/OFF and enables/disables the other buttons
+                    Box(
+                        modifier = Modifier
+                            .width(70.dp)
+                            .height(36.dp)// Size of the button
+                    ) {
+                        Button(
+
+                            onClick = {
+                                // door
+                                door_loading = true
+                                val doesPinExist = PinManager.isPinSet(context)
+                                if (!doesPinExist) {
+                                    Toast.makeText(
+                                        context,
+                                        "Pin is not Setup ! Please go to settings and setup a pin",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                } else {
+                                    isDialogOpen = true
+                                }
+                                door_loading = false
+
+                            },
+                            enabled = !door_loading,
+                            shape = CircleShape,
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                            modifier = Modifier.fillMaxSize(), // Fill the box size to ensure the button takes full space
+                            contentPadding = PaddingValues(2.dp)
+                        ) {
+                            if (door_loading) {
+                                CircularProgressIndicator(
+                                    color = Color.White,
+                                    strokeWidth = 2.dp,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            } else {
+                                Text(
+                                    text = if (isButtonEnabled) "lock" else "unlock",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.Black
+                                )
+
+                            }
+                        }
+                    }
+
+                    if (device.isOn) {
+                    Image(
+                        painter = painterResource(id = R.drawable.unlocked),
+                        contentDescription = "Security Mode Icon",
+                        modifier = Modifier.size(24.dp),
+                        colorFilter = ColorFilter.tint(Color.White)
+                    )
+                        } else {
+                            Image(
+                                painter = painterResource(id = R.drawable.locked),
+                                contentDescription = "Security Mode Icon",
+                                modifier = Modifier.size(24.dp),
+                                colorFilter = ColorFilter.tint(Color.White)
+                            )
+                        }
+                    if (isDialogOpen) {
+                        AlertDialog(
+                            onDismissRequest = {
+                                isDialogOpen = false
+                            }, // Close the dialog when dismissed
+                            title = {
+                                Text(
+                                    text = "Enter Pin to Unlock",
+                                    color = Color.Black,
+                                    fontSize = 18.sp,
+                                    modifier = Modifier.padding(start = 8.dp)
+                                )
+                            },
+                            text = {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth().wrapContentHeight(),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    OutlinedTextField(
+                                        value = pin,
+                                        onValueChange = { if (it.length <= 4) pin = it },
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                        label = { Text("Pin") },
+                                        modifier = Modifier
+                                            .padding(bottom = 5.dp)
+                                            .width(200.dp),
+                                        shape = RoundedCornerShape(10.dp),
+                                        singleLine = true
+                                    )
+                                }
+                            },
+
+                            confirmButton = {
+                                Button(
+                                    onClick = {
+
+                                        coroutineScope.launch {
+                                            confirm_door_loading = true
+                                            try {
+
+                                                val isPinCorrect = PinManager.verifyPin(context, pin)
+                                                if (!isPinCorrect) {
+                                                    Toast.makeText(
+                                                        context,
+                                                        "Pin is Incorrect !",
+                                                        Toast.LENGTH_LONG
+                                                    ).show()
+                                                    confirm_door_loading = false
+                                                    return@launch
+                                                }
+                                                if (device.isOn) {
+                                                    val response =
+                                                        controlApi.controlDevice("door_lock")
+                                                } else {
+                                                    val response =
+                                                        controlApi.controlDevice("door_unlock")
+                                                }
+                                                isDialogOpen = false
+                                                pin = ""
+                                            } catch (e: HttpException) {
+                                                try {
+                                                    // Extract the error message from the error body
+                                                    val errorBody =
+                                                        e.response()?.errorBody()?.string()
+                                                    val jsonObject = errorBody?.let {
+                                                        JSONObject(it)
+                                                    }
+                                                        ?: JSONObject() // Fallback to an empty JSONObject if errorBody is null
+
+                                                    val errorMessage = jsonObject.optString(
+                                                        "detail",
+                                                        "An error occurred"
+                                                    )
+
+                                                    // Show error as a toast message, ensure errorMessage is non-null
+                                                    Toast.makeText(
+                                                        context,
+                                                        errorMessage ?: "An error occurred",
+                                                        Toast.LENGTH_LONG
+                                                    ).show()
+                                                } catch (jsonException: Exception) {
+                                                    // If JSON parsing fails, show a generic message
+                                                    Toast.makeText(
+                                                        context,
+                                                        "An error occurred while parsing the response.",
+                                                        Toast.LENGTH_LONG
+                                                    ).show()
+                                                }
+                                            } catch (e: Exception) {
+                                                Toast.makeText(
+                                                    context,
+                                                    "An unknown error occurred: ${e.message}",
+                                                    Toast.LENGTH_LONG
+                                                ).show()
+                                            } finally {
+                                                confirm_door_loading = false
+                                            }
+                                        }
+                                    },
+                                    enabled = !confirm_door_loading,
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(
+                                            0xFF2A6FCF
+                                        )
+                                    ),
+                                    modifier = Modifier.padding(start = 38.dp)
+                                        .padding(end = 20.dp),
+
+                                    ) {
+
+                                    if (confirm_door_loading) {
+                                        CircularProgressIndicator(
+                                            color = Color.White,
+                                            strokeWidth = 2.dp,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    } else {
+                                        Text(text = "Enter", color = Color.White)
+                                    }
+                                }
+                            },
+
+                            dismissButton = {
+                                Button(
+                                    onClick = {
+                                        isDialogOpen = false
+                                    }, // Close dialog without action
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+
+                                    ) {
+                                    Text(text = "Cancel", color = Color.White)
+                                }
+                            },
+
+                            modifier = Modifier.padding(end = 16.dp)
+                        )
+                    }
+
+                }
+
+            }
             else{
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -554,7 +1228,8 @@ fun DeviceCard(
                     // First button: toggles ON/OFF and enables/disables the other buttons
                     Box(
                         modifier = Modifier
-                            .size(36.dp) // Size of the button
+                            .width(70.dp)
+                            .height(36.dp)// Size of the button// Size of the button
                     ) {
                         Button(
                             onClick = {
@@ -622,203 +1297,10 @@ fun DeviceCard(
 }
 
 
+
+
+@Preview(showBackground = true)
 @Composable
-fun SecurityModeWidget() {
-    var isEnabled by remember { mutableStateOf(false) }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(2.dp)
-            .background(color = Color(0xFF101C43), shape = RoundedCornerShape(12.dp))
-            .padding(16.dp) // Internal padding
-    )
-    {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Image(
-                    painter = painterResource(id = R.drawable.security_icon), // Your image
-                    contentDescription = "Security Mode Icon",
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Column {
-                    Text("Security Mode", color = Color.White, fontSize = 18.sp)
-                    Text(
-                        if (isEnabled) "Enabled" else "Disabled",
-                        color = Color.Gray,
-                        fontSize = 14.sp
-                    )
-                }
-            }
-            Switch(
-                checked = isEnabled,
-                onCheckedChange = { isEnabled = it },
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = Color.White,
-                    uncheckedThumbColor = Color.White,
-                    checkedTrackColor = Color.Gray,
-                    uncheckedTrackColor = DarkBlue
-                )
-            )
-        }
-    }
+fun HomeScreenPreview() {
+    HomeScreen()
 }
-
-@Composable
-fun DoorUnlockScreen() {
-    var pin by remember { mutableStateOf("") }
-    var isDialogOpen by remember { mutableStateOf(false) }
-    var context = LocalContext.current
-
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        // Main content - Unlock Button
-        Button(
-            onClick = {
-                val doesPinExist = PinManager.isPinSet(context)
-                if (!doesPinExist) {
-                    Toast.makeText(context, "Pin is not Setup ! Please go to settings and setup a pin", Toast.LENGTH_LONG).show()
-                } else {
-                    isDialogOpen = true
-                }
-                      },
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF101C43)),
-            modifier = Modifier.height(70.dp)
-                .padding(start = 3.dp)
-                .fillMaxWidth(),
-
-            shape = RoundedCornerShape(20.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.door_opened), // Door icon
-                    contentDescription = "Door Icon",
-                    modifier = Modifier.size(50.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(text = "Unlock Door", color = Color.White,fontSize = 24.sp)
-            }
-        }
-
-        // Dialog for PIN entry
-        if (isDialogOpen) {
-            AlertDialog(
-                onDismissRequest = { isDialogOpen = false }, // Close the dialog when dismissed
-                title = {
-                    Text(text = "Enter Pin to Unlock", color = Color.Black, fontSize = 18.sp,modifier = Modifier.padding(start = 8.dp))
-                },
-                text = {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        OutlinedTextField(
-                            value = pin,
-                            onValueChange = { if (it.length <= 4) pin = it },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            label = { Text("Pin") },
-                            modifier = Modifier
-                                .padding(bottom = 5.dp)
-                                .width(200.dp)
-                                .height(50.dp),
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                    }
-                },
-
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            val isPinCorrect = PinManager.verifyPin(context, pin)
-                            if (!isPinCorrect) {
-                                Toast.makeText(context, "Pin is not Incorrect !", Toast.LENGTH_LONG).show()
-                            }else {
-                                Toast.makeText(context, "Pin is not Correct !", Toast.LENGTH_LONG).show()
-                                isDialogOpen = false
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2A6FCF)),
-                        modifier = Modifier.padding(start = 38.dp)
-                            .padding(end = 20.dp),
-
-                        ) {
-                        Text(text = "Enter", color = Color.White)
-                    }
-
-                },
-
-                dismissButton = {
-                    Button(
-                        onClick = { isDialogOpen = false }, // Close dialog without action
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
-
-                        ) {
-                        Text(text = "Cancel", color = Color.White)
-                    }
-                },
-
-                modifier = Modifier.padding(end = 16.dp)
-            )
-        }
-    }
-}
-
-@Composable
-fun SmartHomeDonutChart(
-    data: List<DeviceStatus>,
-    modifier: Modifier = Modifier
-        .size(300.dp)
-        .padding(16.dp)
-) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = modifier
-    ) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val strokeWidth = size.minDimension / 6
-            val radius = size.minDimension / 2
-            val innerRadius = radius - strokeWidth
-            val rect = Rect(0f, 0f, size.width, size.height)
-
-            var startAngle = -90f
-
-            data.forEach { item ->
-                val sweepAngle = 360 * (item.percentage / 100f)
-                drawArc(
-                    color = item.color,
-                    startAngle = startAngle,
-                    sweepAngle = sweepAngle,
-                    useCenter = false,
-                    topLeft = Offset(0f, 0f),
-                    size = size,
-                    style = Stroke(width = strokeWidth)
-                )
-                startAngle += sweepAngle
-            }
-        }
-
-        // Center Label
-        Text(
-            text = "Smart\nDevices",
-            fontSize = 16.sp,
-            color = Color.Gray,
-            textAlign = TextAlign.Center
-        )
-    }
-}
-
-//@Preview(background = true)
-//@Composable
-//fun HomeScreenp{
-//    HomeScreen()
-//}

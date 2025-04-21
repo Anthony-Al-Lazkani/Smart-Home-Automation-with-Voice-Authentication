@@ -9,7 +9,7 @@ import time
 from typing import Annotated
 from pydantic import BaseModel
 import joblib
-from routes.deviceManagementRoutes import update_device_status
+from deviceManagementUtils import update_device_status
 from database import get_session
 from sqlalchemy.orm import Session
 from serialCommunicationUtils import send_message
@@ -121,27 +121,24 @@ async def authenticate_voice(session: SessionDep, token: str = Form(...), audio:
 
         prediction = pipeline.predict([transcription]).tolist()[0]
 
-        arduino_response = send_message(prediction)
-
-        if not arduino_response:
-            raise HTTPException(status_code=400,detail="Arduino could not execute the requested command")
+        send_message(prediction)
 
         # Prediction mapping
-        device_info = device_action_mapping.get(prediction)
-        print(f"Device info: {device_info}")
-
-        if not device_info:
-            return JSONResponse(
-                content={"message": "Invalid command", "isAuthenticated": True},
-                status_code=400
-            )
-
-        device_name, device_status = device_info
-        response = await update_device_status(device_name, device_status, session)
-        print(f"DB update response: {response}")
-
-        if not response:
-            raise HTTPException(status_code=404, detail="Device not found")
+        # device_info = device_action_mapping.get(prediction)
+        # print(f"Device info: {device_info}")
+        #
+        # if not device_info:
+        #     return JSONResponse(
+        #         content={"message": "Invalid command", "isAuthenticated": True},
+        #         status_code=400
+        #     )
+        #
+        # device_name, device_status = device_info
+        # response = await update_device_status(device_name, device_status, session)
+        # print(f"DB update response: {response}")
+        #
+        # if not response:
+        #     raise HTTPException(status_code=404, detail="Device not found")
 
         # Clean up temporary files
         delete_temp_files()

@@ -3,6 +3,7 @@ package com.example.test.api
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import okhttp3.ResponseBody
+import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
@@ -10,8 +11,11 @@ import retrofit2.http.GET
 import retrofit2.http.Multipart
 import retrofit2.http.PATCH
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Part
 import retrofit2.http.Path
+import com.google.gson.annotations.SerializedName
+
 
 // Login
 data class SignInRequest(
@@ -118,4 +122,54 @@ data class DeviceControlResponse(
 interface ManualControlApi {
     @POST("device/{command}")
     suspend fun controlDevice(@Path("command") command: String): DeviceControlResponse
+}
+
+// Device Summary
+data class DeviceSummary(
+    val total_devices: Int,
+    val devices_on: Int,
+    val percentage_on: Float
+)
+
+interface DevicesSummaryApi {
+    @GET("device-summary")
+    suspend fun getDeviceSummary(): Response<DeviceSummary>
+}
+
+
+// Timer setup
+data class SetDeviceTimerRequest(
+    val on_time: String?,  // Nullable to allow optional fields
+    val off_time: String?
+)
+
+data class SetDeviceTimerResponse(
+    val message: String
+)
+
+interface DeviceTimerApi {
+    @PUT("timer/{device_type}")
+    suspend fun setDeviceTimer(
+        @Path("device_type") deviceType: String,
+        @Body timerRequest: SetDeviceTimerRequest
+    ): Response<SetDeviceTimerResponse>
+}
+
+// GET Timers
+data class DeviceTimer(
+    val id: Int,
+    val device_type: String,
+    val on_time: String?,  // Nullable if the field can be null
+    val off_time: String?
+)
+
+data class GetAllTimersResponse(
+    @SerializedName("device_timers")
+    val deviceTimers: List<DeviceTimer>
+) {
+}
+
+interface FetchTimerApi {
+    @GET("timer/timers")
+    suspend fun getAllTimers(): Response<GetAllTimersResponse>
 }

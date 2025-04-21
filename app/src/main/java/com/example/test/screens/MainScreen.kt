@@ -17,6 +17,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -138,7 +139,12 @@ fun MainScreen(navController: NavController) {
     ) {
         Scaffold(
             bottomBar = {
-                NavigationBar {
+                NavigationBar(
+//                    containerColor = Color(0xFF2A6FCF)
+                    containerColor = Color.White
+                ) {
+                    val selectedColor = Color(0xFF2A6FCF)
+                    val unselectedColor = Color(0xFF05103A)
                     NavigationBarItem(
                         selected = selectedItemIndex == 0,
                         onClick = { selectedItemIndex = 0 },
@@ -149,6 +155,12 @@ fun MainScreen(navController: NavController) {
                                 contentDescription = items[0].title
                             )
                         },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = selectedColor,
+                            selectedTextColor = selectedColor,
+                            unselectedIconColor = unselectedColor,
+                            unselectedTextColor = unselectedColor
+                        ),
                         modifier = Modifier.weight(1f)
                     )
 
@@ -189,6 +201,12 @@ fun MainScreen(navController: NavController) {
                                 contentDescription = items[1].title
                             )
                         },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = selectedColor,
+                            selectedTextColor = selectedColor,
+                            unselectedIconColor = unselectedColor,
+                            unselectedTextColor = unselectedColor
+                        ),
                         modifier = Modifier.weight(1f)
                     )
                 }

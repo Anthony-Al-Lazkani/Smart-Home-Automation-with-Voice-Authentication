@@ -53,6 +53,9 @@ dependencies {
     implementation ("androidx.appcompat:appcompat:1.3.1")
     implementation ("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
     implementation ("androidx.security:security-crypto:1.1.0-alpha06")
+    implementation("org.json:json:20240303")
+    implementation ("com.google.code.gson:gson:2.8.8")
+
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
