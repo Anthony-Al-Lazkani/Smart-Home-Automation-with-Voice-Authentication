@@ -4,7 +4,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitInstance {
-    private const val baseURL = "http://192.168.1.12:8000/"
+    private const val baseURL = "http://172.20.10.5:8000/"
 
     private fun getInstance() : Retrofit {
         return Retrofit.Builder()
@@ -52,5 +52,9 @@ object RetrofitInstance {
 
     fun getFetchTimerApi() : FetchTimerApi {
         return getInstance().create(FetchTimerApi::class.java)
+    }
+
+    fun getGuestLoginApi() : GuestLoginApi {
+        return getInstance().create(GuestLoginApi::class.java)
     }
 }

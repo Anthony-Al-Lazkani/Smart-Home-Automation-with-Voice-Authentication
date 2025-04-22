@@ -76,7 +76,7 @@ interface VoiceAuthenticationApi {
     suspend fun authenticateVoice(
         @Part("token") token: RequestBody,
         @Part audio: MultipartBody.Part
-    ): SpeechRecognitionApiResponse
+    ): Response<SpeechRecognitionApiResponse>
 }
 
 
@@ -119,9 +119,16 @@ data class DeviceControlResponse(
     val message: String
 )
 
+data class TokenBody(
+    val token: String
+)
+
 interface ManualControlApi {
     @POST("device/{command}")
-    suspend fun controlDevice(@Path("command") command: String): DeviceControlResponse
+    suspend fun controlDevice(
+        @Path("command") command: String,
+        @Body body: TokenBody
+    ): DeviceControlResponse
 }
 
 // Device Summary
@@ -172,4 +179,15 @@ data class GetAllTimersResponse(
 interface FetchTimerApi {
     @GET("timer/timers")
     suspend fun getAllTimers(): Response<GetAllTimersResponse>
+}
+
+// Guest Login Api
+data class GuestLoginResponse(
+    val message: String,
+    val token: String
+)
+
+interface GuestLoginApi {
+    @POST("auth/login/guest")
+    suspend fun guestLogin(): Response<GuestLoginResponse>
 }

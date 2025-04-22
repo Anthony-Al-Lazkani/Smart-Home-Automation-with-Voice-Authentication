@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, Body
 from fastapi.responses import JSONResponse
 from sqlmodel import Session, SQLModel, select
 from sqlalchemy.orm import Session
@@ -7,7 +7,7 @@ from models.userModel import User
 from database import get_session
 from pydantic import BaseModel
 from passlib.context import CryptContext
-from jwt_utils import TokenData, create_access_token, decode_token
+from jwt_utils import TokenData, create_access_token, decode_token, get_current_role
 import jwt
 
 authRouter = APIRouter()
@@ -61,7 +61,7 @@ async def sign_up(user: signUpRequest, session: SessionDep) -> JSONResponse:
     session.commit()
     session.refresh(new_user)
 
-    token_data = TokenData(id=new_user.id, username=user.username)
+    token_data = TokenData(id=new_user.id, username=user.username, role="admin")
     token = create_access_token(token_data)
 
     return JSONResponse(
@@ -79,11 +79,21 @@ async def login(user: signInRequest, session: SessionDep) -> JSONResponse:
     if not pwd_context.verify(user.password, existing_username.password):
         raise HTTPException(status_code=400, detail="Invalid Password !")
 
-    token_data = TokenData(id=existing_username.id, username=user.username)
+    token_data = TokenData(id=existing_username.id, username=user.username, role="admin")
     token = create_access_token(token_data)
 
     return JSONResponse(
         content={"message": "Login successful","token" : token},
+        status_code=200
+    )
+
+@authRouter.post("/login/guest")
+async def guest_login() -> JSONResponse:
+    token_data = TokenData(id=999, username="guest", role="guest")
+    token = create_access_token(token_data)
+
+    return JSONResponse(
+        content={"message": "Guest login successful", "token": token},
         status_code=200
     )
 
@@ -116,68 +126,5 @@ async def delete_all_users(session: SessionDep) -> JSONResponse:
     except Exception as e:
         session.rollback()
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
-
-
-
-
-# class SetPinRequest(BaseModel):
-#     token: str
-#     pin_code: str
-#
-# @authRouter.post("/pin-setup")
-# async def set_pin(request: SetPinRequest, session: Session = Depends(get_session)):
-#     # Decode the token to get the user ID
-#     decoded_token = decode_token(request.token)
-#     user_id = decoded_token.get("id")
-#
-#     if not user_id:
-#         raise HTTPException(status_code=400, detail="Invalid token")
-#
-#     # Fetch the user from the database
-#     existing_user = session.query(User).filter(User.id == user_id).first()
-#
-#     if not existing_user:
-#         raise HTTPException(status_code=404, detail="User not found")
-#
-#     if existing_user.pin_code:
-#         raise HTTPException(status_code=400, detail="A PIN has already been set for this account")
-#
-#     # Hash the PIN and save it
-#     hashed_pin = pwd_context.hash(request.pin_code)
-#     existing_user.pin_code = hashed_pin
-#
-#     session.commit()
-#
-#     return JSONResponse(content={"message": "PIN code set successfully"}, status_code=201)
-#
-#
-# class PinAuthRequest(BaseModel):
-#     token: str
-#     pin_code: str
-#
-# @authRouter.post("/pin-authentication")
-# async def authenticate_pin(request: PinAuthRequest, session: Session = Depends(get_session)):
-#     # Decode the token to get the user ID
-#     decoded_token = decode_token(request.token)
-#     user_id = decoded_token.get("id")
-#
-#     if not user_id:
-#         raise HTTPException(status_code=400, detail="Invalid token")
-#
-#     # Fetch the user from the database
-#     existing_user = session.query(User).filter(User.id == user_id).first()
-#
-#     if not existing_user:
-#         raise HTTPException(status_code=404, detail="User not found")
-#
-#     if not existing_user.pin_code:
-#         raise HTTPException(status_code=400, detail="No PIN has been set for this account")
-#
-#     # Verify the provided PIN with the stored hashed PIN
-#     if not pwd_context.verify(request.pin_code, existing_user.pin_code):
-#         raise HTTPException(status_code=400, detail="Invalid PIN")
-#
-#     return JSONResponse(content={"message": "PIN code authenticated successfully"}, status_code=200)
-
 
 

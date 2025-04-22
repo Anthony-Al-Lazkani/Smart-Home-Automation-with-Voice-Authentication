@@ -41,11 +41,13 @@ fun LoginScreen(navController: NavController) {
     var password by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
+    var guest_loading by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
 
     // Api Instance
     val authApiLogin = RetrofitInstance.getAuthAPILogin()
+    val guestLoginApi = RetrofitInstance.getGuestLoginApi()
 
     Box(
         modifier = Modifier
@@ -184,6 +186,55 @@ fun LoginScreen(navController: NavController) {
                 fontSize = 14.sp,
                 modifier = Modifier.clickable {
                     navController.navigate("signup") // Replace with your actual route
+                }
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
+                text = buildAnnotatedString {
+                    withStyle(style = SpanStyle(color = Color.White)) {
+                        append("Login as ")
+                    }
+                    withStyle(style = SpanStyle(color = Color.Blue)) {
+                        append("Guest")
+                    }
+                },
+                fontSize = 14.sp,
+                modifier = Modifier.clickable {
+                    coroutineScope.launch {
+                        guest_loading = true
+                        try {
+                            val response = guestLoginApi.guestLogin() // Call the guest login API
+
+                            if (response.isSuccessful) {
+                                val guestLoginResponse = response.body()
+                                guestLoginResponse?.let {
+                                    TokenManager.saveToken(context = context, token = it.token)
+
+                                    // Navigate to the main screen as guest
+                                    navController.navigate("main screen")
+                                }
+                            } else {
+                                Toast.makeText(context, "Guest login failed", Toast.LENGTH_LONG).show()
+                            }
+                        } catch (e: HttpException) {
+                            try {
+                                val errorBody = e.response()?.errorBody()?.string()
+                                val jsonObject = errorBody?.let {
+                                    JSONObject(it)
+                                } ?: JSONObject()
+
+                                val errorMessage = jsonObject.optString("detail", "An error occurred")
+                                Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+                            } catch (jsonException: Exception) {
+                                Toast.makeText(context, "An error occurred while parsing the response.", Toast.LENGTH_LONG).show()
+                            }
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "An unknown error occurred: ${e.message}", Toast.LENGTH_LONG).show()
+                        } finally {
+                            guest_loading = false
+                        }
+                    }
                 }
             )
         }

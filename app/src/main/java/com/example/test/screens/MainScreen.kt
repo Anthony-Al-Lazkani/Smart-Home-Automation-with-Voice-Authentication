@@ -29,6 +29,8 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
+import retrofit2.HttpException
 import java.io.File
 
 data class BottomNavigationItem(
@@ -104,24 +106,49 @@ fun MainScreen(navController: NavController) {
         coroutineScope.launch {
             val requestFile = tempFile.asRequestBody("audio/aac".toMediaTypeOrNull())
             val audioPart = MultipartBody.Part.createFormData("audio", "recorded.aac", requestFile)
-//            val tokenPart = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwidXNlcm5hbWUiOiJsYXprYW5pIiwiZXhwIjoxNzQzMjU5Njk2fQ.PGDdw5LWX_g415wwqlKH7RBFBRD4oyTduT3bMDAfcc4".toRequestBody("text/plain".toMediaTypeOrNull())
 
             val tokenPart = token?.toRequestBody("text/plain".toMediaTypeOrNull())
                 ?: // Handle the null case (e.g., show an error, or use a default token)
                 "".toRequestBody("text/plain".toMediaTypeOrNull()) // Example fallback
 
-            val response = try {
-                voiceAuthentication.authenticateVoice(tokenPart, audioPart)
+            try {
+                val response = voiceAuthentication.authenticateVoice(tokenPart, audioPart)
+
+                if (response.isSuccessful) {
+                    Toast.makeText(context, "Authentication Successful", Toast.LENGTH_SHORT).show()
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    val jsonObject = errorBody?.let { JSONObject(it) } ?: JSONObject()
+                    val errorMessage = jsonObject.optString("detail", "Authentication failed")
+
+                    Toast.makeText(context, "Authentication Failed: $errorMessage", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: HttpException) {
+                try {
+                    val errorBody = e.response()?.errorBody()?.string()
+                    val jsonObject = errorBody?.let { JSONObject(it) } ?: JSONObject()
+                    val errorMessage = jsonObject.optString("detail", "Authentication failed")
+
+                    Toast.makeText(context, "Authentication Failed: $errorMessage", Toast.LENGTH_SHORT).show()
+                } catch (jsonException: Exception) {
+                    Toast.makeText(context, "An error occurred while parsing the error response.", Toast.LENGTH_SHORT).show()
+                }
             } catch (e: Exception) {
-                Toast.makeText(context, "Authentication Failed : ${e.message}", Toast.LENGTH_SHORT).show()
-                return@launch
+                Toast.makeText(context, "An unknown error occurred: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
             }
 
-            if (response.isAuthenticated == true) {
-                Toast.makeText(context, "Authentication Successful", Toast.LENGTH_SHORT).show()
-            }else {
-                Toast.makeText(context, "Authentication Failed", Toast.LENGTH_SHORT).show()
-            }
+//            val response = try {
+//                voiceAuthentication.authenticateVoice(tokenPart, audioPart)
+//            } catch (e: Exception) {
+//                Toast.makeText(context, "Authentication Failed : ${e.message}", Toast.LENGTH_SHORT).show()
+//                return@launch
+//            }
+//
+//            if (response.isAuthenticated == true) {
+//                Toast.makeText(context, "Authentication Successful", Toast.LENGTH_SHORT).show()
+//            }else {
+//                Toast.makeText(context, "Authentication Failed", Toast.LENGTH_SHORT).show()
+//            }
 
 //            if (response.isSuccessful) {
 //                Log.d("Upload", "Upload successful: ${response.body()?.string()}")

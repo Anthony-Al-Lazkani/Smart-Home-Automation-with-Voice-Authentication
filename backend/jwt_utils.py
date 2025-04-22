@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from pydantic import BaseModel
 import os
 from dotenv import load_dotenv
+from fastapi import Header
 
 load_dotenv()
 
@@ -14,6 +15,7 @@ ALGORITHM = os.getenv("ALGORITHM")
 class TokenData(BaseModel):
     id : int
     username: str
+    role : str
 
 def create_access_token(data: TokenData):
     to_encode = data.dict()
@@ -32,4 +34,8 @@ def decode_token(token: str):
         raise HTTPException(status_code=401, detail="Token has expired")
     except jwt.JWTError:
         raise HTTPException(status_code=401, detail="Could not validate credentials")
+
+def get_current_role(token: str = Header(...)):
+    decoded = decode_token(token)
+    return decoded.get("role")
 

@@ -9,6 +9,7 @@ from models.deviceModel import Device
 from pydantic import BaseModel
 from datetime import datetime, timezone
 from serialCommunicationUtils import send_message
+from jwt_utils import get_current_role
 
 
 deviceManagementRouter = APIRouter()
@@ -29,6 +30,8 @@ device_action_mapping = {
     "door_lock": ("door", False),
     "door_unlock": ("door", True)
 }
+
+GUEST_ALLOWED_COMMANDS = {"lights_on", "lights_off"}
 
 # Add a new device
 @deviceManagementRouter.post("/device")
@@ -128,9 +131,17 @@ async def get_device(device_name: str, session: SessionDep) -> JSONResponse:
 #
 #     return JSONResponse(status_code=200, content={"message" : "Device updated successfully"})
 
+class TokenBody(BaseModel):
+    token : str
 
 @deviceManagementRouter.post("/device/{command}")
-async def manual_control(command : str):
+async def manual_control(command : str, body : TokenBody):
+    role = get_current_role(body.token)
+    if role == "guest" and command not in GUEST_ALLOWED_COMMANDS:
+        raise HTTPException(
+            status_code=403,
+            detail="Guests are not allowed to manually control this device"
+        )
     send_message(command)
     return JSONResponse(status_code=200, content={"message" : "Device updated successfully"})
 

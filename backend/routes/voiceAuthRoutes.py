@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from VoiceAuthentication.voiceAuth import verify_voice, speech_to_text
 from fastapi.responses import JSONResponse
 from VoiceAuthentication.audio_files_manager import TEMP_DIR, convert_to_wav, delete_temp_files
-from jwt_utils import decode_token
+from jwt_utils import decode_token, get_current_role
 import os
 import time
 from typing import Annotated
@@ -51,6 +51,10 @@ async def upload_voice(token: str = Form(...), audio: UploadFile = File(...)):
     if not token:
         raise HTTPException(status_code=400, detail="Token is required")
 
+    role = get_current_role(token)
+    if role != "admin":
+        raise HTTPException(status_code=403, detail="Guests are not allowed to upload voice samples")
+
     # Save the raw AAC file temporarily
     username = decode_token(token)["username"]
     raw_aac_path = os.path.join(TEMP_DIR, f"{username}.aac")
@@ -78,6 +82,11 @@ async def authenticate_voice(session: SessionDep, token: str = Form(...), audio:
     """
     if not token:
         raise HTTPException(status_code=400, detail="Token is required")
+    
+    role = get_current_role(token)
+    if role != "admin" :
+        raise HTTPException(status_code=403, detail="Guests are not allowed to use voice commands")
+        
 
     # Decode token to get username
     username = decode_token(token)["username"]
@@ -123,26 +132,9 @@ async def authenticate_voice(session: SessionDep, token: str = Form(...), audio:
 
         send_message(prediction)
 
-        # Prediction mapping
-        # device_info = device_action_mapping.get(prediction)
-        # print(f"Device info: {device_info}")
-        #
-        # if not device_info:
-        #     return JSONResponse(
-        #         content={"message": "Invalid command", "isAuthenticated": True},
-        #         status_code=400
-        #     )
-        #
-        # device_name, device_status = device_info
-        # response = await update_device_status(device_name, device_status, session)
-        # print(f"DB update response: {response}")
-        #
-        # if not response:
-        #     raise HTTPException(status_code=404, detail="Device not found")
-
         # Clean up temporary files
         delete_temp_files()
-        return JSONResponse(content={"message": "Authentication successful", "isAuthenticated" : True}, status_code=200)
+        return JSONResponse(content={"message": "Authentication successful"}, status_code=200)
     else:
         # Increment failed attempts
         failed_attempts_tracker[username]["attempts"] += 1
@@ -158,7 +150,7 @@ async def authenticate_voice(session: SessionDep, token: str = Form(...), audio:
 
         # Clean up temporary files
         delete_temp_files()
-        return JSONResponse(content={"message": "Authentication failed", "isAuthenticated" : False}, status_code=401)
+        raise HTTPException(status_code=401, detail="The provided voice does not match the user's profile.")
 
 
 @voiceAuthRouter.post("/voice-control")

@@ -76,8 +76,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.test.api.DeviceSummary
 import com.example.test.api.DeviceTimer
 import com.example.test.api.SetDeviceTimerRequest
+import com.example.test.api.TokenBody
 //import com.example.test.objects.DeviceTimer
 import com.example.test.objects.PinManager
+import com.example.test.objects.TokenManager
 //import com.example.test.objects.TimerManager
 import com.google.gson.Gson
 import kotlinx.coroutines.coroutineScope
@@ -814,6 +816,8 @@ fun DeviceCard(
     var heater_loading by remember { mutableStateOf(false) }
     var door_loading by remember { mutableStateOf(false) }
     var confirm_door_loading by remember { mutableStateOf(false) }
+    val token = TokenManager.getToken(context) ?: ""
+    val tokenBody = TokenBody(token = token)
     Card(
         modifier = Modifier
             .size(width = 150.dp, height = 180.dp)
@@ -887,10 +891,10 @@ fun DeviceCard(
                                     light_loading = true
                                     try {
                                         if (device.isOn) {
-                                            val response = controlApi.controlDevice("lights_off")
+                                            val response = controlApi.controlDevice("lights_off", tokenBody)
                                         } else {
-                                            val response = controlApi.controlDevice("lights_on")
-                                        }
+                                            val response = controlApi.controlDevice("lights_on", tokenBody)
+                                        }0000
                                     } catch (e: HttpException) {
                                         try {
                                             // Extract the error message from the error body
@@ -1130,10 +1134,10 @@ fun DeviceCard(
                                                 }
                                                 if (device.isOn) {
                                                     val response =
-                                                        controlApi.controlDevice("door_lock")
+                                                        controlApi.controlDevice("door_lock", tokenBody)
                                                 } else {
                                                     val response =
-                                                        controlApi.controlDevice("door_unlock")
+                                                        controlApi.controlDevice("door_unlock", tokenBody)
                                                 }
                                                 isDialogOpen = false
                                                 pin = ""
@@ -1238,9 +1242,9 @@ fun DeviceCard(
                                     heater_loading = true
                                     try {
                                         if (device.isOn) {
-                                            val response = controlApi.controlDevice("heater_off")
+                                            val response = controlApi.controlDevice("heater_off", tokenBody)
                                         } else {
-                                            val response = controlApi.controlDevice("heater_on")
+                                            val response = controlApi.controlDevice("heater_on", tokenBody)
                                         }
                                     } catch (e: HttpException) {
                                         try {
