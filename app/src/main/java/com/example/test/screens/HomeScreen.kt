@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -56,6 +57,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
@@ -65,6 +68,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.test.R
@@ -79,6 +83,7 @@ import com.example.test.api.SetDeviceTimerRequest
 import com.example.test.api.TokenBody
 //import com.example.test.objects.DeviceTimer
 import com.example.test.objects.PinManager
+import com.example.test.objects.ThemeMode
 import com.example.test.objects.TokenManager
 //import com.example.test.objects.TimerManager
 import com.google.gson.Gson
@@ -172,13 +177,15 @@ data class Device(
 
 @Composable
 fun getDevicesWithState(devices: List<com.example.test.api.Device>): MutableState<List<Pair<Device, Int>>> {
+    val context = LocalContext.current
+    val themeMode = ThemeMode.getInstance(context)
     val devicesState = remember(devices) {
         mutableStateOf(
             listOf(
-                Device("Smart Light", "Bedroom", devices.find { it.device_name == "lights" }?.status ?: false, Color(0xFF101C43), Color.White, true, showButtons = false,isDoor = false) to R.drawable.hang_lamp,
-                Device("Smart Fan", "Living Room", devices.find { it.device_name == "fan" }?.status ?: false, Color(0xFF101C43), Color.White, false, showButtons = true,isDoor = false) to R.drawable.fan,
-                Device("Smart Heater", "Living Room", devices.find { it.device_name == "heater" }?.status ?: false, Color(0xFF101C43), Color.White, false, showButtons = false,isDoor = false) to R.drawable.heater_icon,
-                Device("Smart Door", "House", devices.find { it.device_name == "door" }?.status ?: false, Color(0xFF101C43), Color.White, false, showButtons = false,isDoor = true) to R.drawable.door_opened,
+                Device("Smart Light", "Bedroom", devices.find { it.device_name == "lights" }?.status ?: false, Color(themeMode.secondary), Color(themeMode.fontColor), true, showButtons = false,isDoor = false) to R.drawable.hang_lamp,
+                Device("Smart Fan", "Living Room", devices.find { it.device_name == "fan" }?.status ?: false,  Color(themeMode.secondary), Color(themeMode.fontColor), false, showButtons = true,isDoor = false) to R.drawable.fan,
+                Device("Smart Heater", "Living Room", devices.find { it.device_name == "heater" }?.status ?: false, Color(themeMode.secondary), Color(themeMode.fontColor), false, showButtons = false,isDoor = false) to R.drawable.heater_icon,
+                Device("Smart Door", "House", devices.find { it.device_name == "door" }?.status ?: false,  Color(themeMode.secondary), Color(themeMode.fontColor), false, showButtons = false,isDoor = true) to R.drawable.door_opened,
 
                 )
         )
@@ -189,13 +196,20 @@ fun getDevicesWithState(devices: List<com.example.test.api.Device>): MutableStat
 
 @Composable
 fun SecurityModeWidget() {
+    val context = LocalContext.current
+    val themeMode = ThemeMode.getInstance(context)
     var isEnabled by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .padding(2.dp)
-            .background(color = Color(0xFF101C43), shape = RoundedCornerShape(12.dp))
+            .shadow(
+                elevation = 2.dp,
+                shape = RoundedCornerShape(12.dp),
+                clip = false
+            )
+            .background(color = Color(themeMode.secondary), shape = RoundedCornerShape(12.dp))
             .padding(16.dp) // Internal padding
     )
     {
@@ -225,7 +239,7 @@ fun SecurityModeWidget() {
 
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
-                    Text("Security Mode", color = Color.White, fontSize = 18.sp)
+                    Text("Security Mode", color = Color(themeMode.fontColor), fontSize = 18.sp)
 
                     Text(
                         if (security) "Enabled" else "Disabled",
@@ -245,7 +259,7 @@ fun SecurityModeWidget() {
 
                     },
                     shape = CircleShape,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(themeMode.buttonColor)),
                     modifier = Modifier.fillMaxWidth(), // Fill the box size to ensure the button takes full space
                     contentPadding = PaddingValues(2.dp)
                 ) {
@@ -261,7 +275,7 @@ fun SecurityModeWidget() {
                         text = if (security) "ON" else "OFF",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.Black
+                        color = Color(themeMode.textButtonColor)
                     )
 //                }
                 }
@@ -272,18 +286,26 @@ fun SecurityModeWidget() {
 
 @Composable
 fun DashboardCard() {
+    val context = LocalContext.current
+    val themeMode = ThemeMode.getInstance(context)
+    var isLightMode by remember { mutableStateOf(themeMode.isLightMode()) }
     val viewModel: DeviceViewModel = viewModel()
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start =6.dp, end = 6.dp)
+            .padding(start = 6.dp, end = 6.dp)
+            .shadow(
+                elevation = 2.dp,
+                shape = RoundedCornerShape(12.dp),
+                clip = false
+            )
+            .background(Color(themeMode.buttonColor), RoundedCornerShape(12.dp))
     ) {
-        Spacer(modifier = Modifier.height(16.dp))
 
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.White, RoundedCornerShape(20.dp))
+                .background(Color.Transparent, RoundedCornerShape(20.dp))
                 .padding(20.dp),
             contentAlignment = Alignment.Center
         ) {
@@ -297,7 +319,7 @@ fun DashboardCard() {
                         text = "Home Appliances",
                         fontSize = 21.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.Black
+                        color = Color(themeMode.textButtonColor)
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
@@ -314,17 +336,19 @@ fun DashboardCard() {
 
 @Composable
 fun CircularProgressWithText(progress: Float) {
+    val context = LocalContext.current
+    val themeMode = ThemeMode.getInstance(context)
     Box(contentAlignment = Alignment.Center) {
         CircularProgressIndicator(
             progress = progress,
             strokeWidth = 8.dp,
-            color = Color(0xFF4CAF50), // Green
+            color = Color(themeMode.textButtonColor), // Green
             modifier = Modifier.size(70.dp)
         )
         Text(
             text = "${(progress * 100).toInt()}%",
             fontWeight = FontWeight.Bold,
-            color = Color.Black
+            color = Color(themeMode.textButtonColor)
         )
     }
 }
@@ -337,6 +361,10 @@ fun TimerCard() {
     var timerDeviceList by remember { mutableStateOf<List<DeviceTimer>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
     val fetchTimers = RetrofitInstance.getFetchTimerApi()
+
+    val themeMode = ThemeMode.getInstance(context)
+    var isLightMode by remember { mutableStateOf(themeMode.isLightMode()) }
+    
 
     // Coroutine scope for async tasks
     val coroutineScope = rememberCoroutineScope()
@@ -370,7 +398,9 @@ fun TimerCard() {
     Box(
         modifier = Modifier
             .padding(horizontal = 4.dp)
-            .background(Color(0xFF101C43), shape = RoundedCornerShape(12.dp))
+            .shadow(2.dp, shape = RoundedCornerShape(12.dp)) // 🔥 2dp shadow
+            .clip(RoundedCornerShape(12.dp)) // 👈 Prevent content overflow from shadow
+            .background(Color(themeMode.secondary)) // 🎨 Background inside shadow
             .fillMaxWidth()
             .padding(16.dp)
     ) {
@@ -385,21 +415,21 @@ fun TimerCard() {
             ) {
                 Button(
                     onClick = { showDialog = true },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                    colors = ButtonDefaults.buttonColors(containerColor = if (!isLightMode) Color.White else Color(themeMode.dark_secondary)),
                     shape = RoundedCornerShape(50),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = "Add Icon",
-                        tint = Color.Black,
+                        tint = if (!isLightMode) Color.Black else Color.White,
                         modifier = Modifier
                             .size(20.dp)
                             .padding(end = 4.dp)
                     )
                     Text(
                         text = "Set Timer",
-                        color = Color.Black,
+                        color = if (!isLightMode) Color.Black else Color.White,
                         fontSize = 12.sp
                     )
                 }
@@ -409,7 +439,7 @@ fun TimerCard() {
                     Icon(
                         imageVector = Icons.Default.Refresh,
                         contentDescription = "Refresh Timers",
-                        tint = Color.White,
+                        tint = Color(themeMode.fontColor),
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -422,7 +452,7 @@ fun TimerCard() {
                 listOf("Device Type", "On Time", "Off Time").forEach { header ->
                     Text(
                         text = header,
-                        color = Color.White,
+                        color = Color(themeMode.fontColor),
                         fontSize = 14.sp,
                         modifier = Modifier
                             .weight(1f)
@@ -433,13 +463,13 @@ fun TimerCard() {
 
             // Data rows - Displaying timer information
             if (isLoading) {
-                Text("Loading timers...", color = Color.White)
+                Text("Loading timers...", color = Color(themeMode.fontColor))
             } else {
                 for (timer in timerDeviceList) {
                     Row(modifier = Modifier.fillMaxWidth()) {
                         Text(
                             text = timer.device_type,
-                            color = Color.White,
+                            color = Color(themeMode.fontColor),
                             fontSize = 13.sp,
                             modifier = Modifier
                                 .weight(1f)
@@ -447,7 +477,7 @@ fun TimerCard() {
                         )
                         Text(
                             text = timer.on_time ?: "-",
-                            color = Color.White,
+                            color = Color(themeMode.fontColor),
                             fontSize = 13.sp,
                             modifier = Modifier
                                 .weight(1f)
@@ -455,7 +485,7 @@ fun TimerCard() {
                         )
                         Text(
                             text = timer.off_time ?: "-",
-                            color = Color.White,
+                            color = Color(themeMode.fontColor),
                             fontSize = 13.sp,
                             modifier = Modifier
                                 .weight(1f)
@@ -480,6 +510,7 @@ fun TimerPopup(onDismiss: () -> Unit) {
     var coroutineScope = rememberCoroutineScope()
     var deviceTimerApi = RetrofitInstance.getDeviceTimerApi()
     var setTimerLoading by remember { mutableStateOf(false) }
+
 
     var onTime by remember { mutableStateOf("") }
     var offTime by remember { mutableStateOf("") }
@@ -667,12 +698,21 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: DeviceViewModel = viewM
     val devicesState = getDevicesWithState(devices)
     val context = LocalContext.current
 //    var timers by remember { mutableStateOf(listOf<DeviceTimer>()) }
+    val themeMode = ThemeMode.getInstance(context)
+    var isLightMode by remember { mutableStateOf(themeMode.isLightMode()) }
+
+    LaunchedEffect(Unit) {
+        isLightMode = themeMode.isLightMode()
+    }
 
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF05103A))
+//            .background(Color(0xFF05103A))
+            .background(
+                Color(themeMode.primary)
+            )
             .padding(16.dp)
     ) {
         Column(
@@ -681,7 +721,7 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: DeviceViewModel = viewM
                 .verticalScroll(scrollState)
                 .padding(bottom = 16.dp)
         ) {
-            Text(text = "Hey, User!", fontSize = 24.sp, fontWeight = FontWeight.Normal, color = Color.White)
+            Text(text = "Hey, User!", fontSize = 24.sp, fontWeight = FontWeight.Normal, color = Color(themeMode.fontColor))
             Spacer(modifier = Modifier.height(16.dp))
 
             DashboardCard()
@@ -727,30 +767,8 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: DeviceViewModel = viewM
 
             SecurityModeWidget()
 
-//            Column(
-//                modifier = Modifier
-//                    .fillMaxSize()
-//                    .padding(16.dp)
-//            ) {
-//                Button(onClick = {
-//                    val testTimer = listOf(
-//                        DeviceTimer("fan", "09:30", "11:30")
-//                    )
-//                    TimerManager.saveTimers(context = context, timers = testTimer)
-//                }) {
-//                    Text("Set Test Timer for lights 16:45")
-//                }
-//            }
             Spacer(modifier = Modifier.height(55.dp))
 
-//            Button(onClick = {
-//                timers = TimerManager.getTimers(context)
-//                val timersJson = Gson().toJson(timers)
-//                println("timers: $timers") // Log the timers to the console
-//                println("timers: $timersJson") // Log the timers to the console
-//            }) {
-//                Text("Show Timers")
-//            }
 
         }
     }
@@ -774,19 +792,26 @@ fun SensorWidgetRow() {
 
 @Composable
 fun SensorBox(title: String, value: String) {
+    val context = LocalContext.current
+    val themeMode = ThemeMode.getInstance(context)
     Box(
         modifier = Modifier
             .width(113.dp)
-            .background(Color(0xFF101C43), RoundedCornerShape(12.dp))
+            .shadow(
+                elevation = 2.dp,
+                shape = RoundedCornerShape(12.dp),
+                clip = false
+            )
+            .background(Color(themeMode.secondary), RoundedCornerShape(12.dp))
             .padding(vertical = 12.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = title, color = Color.White, fontSize = 14.sp)
+            Text(text = title, color = Color(themeMode.fontColor), fontSize = 14.sp)
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = value,
-                color = Color(0xFF64FFDA),
+                color = Color(themeMode.fontColor),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -818,12 +843,13 @@ fun DeviceCard(
     var confirm_door_loading by remember { mutableStateOf(false) }
     val token = TokenManager.getToken(context) ?: ""
     val tokenBody = TokenBody(token = token)
+    val themeMode = ThemeMode.getInstance(context)
     Card(
         modifier = Modifier
             .size(width = 150.dp, height = 180.dp)
             .padding(3.dp),
         shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = device.color)
     ) {
         Column(
@@ -894,7 +920,7 @@ fun DeviceCard(
                                             val response = controlApi.controlDevice("lights_off", tokenBody)
                                         } else {
                                             val response = controlApi.controlDevice("lights_on", tokenBody)
-                                        }0000
+                                        }
                                     } catch (e: HttpException) {
                                         try {
                                             // Extract the error message from the error body
@@ -921,7 +947,7 @@ fun DeviceCard(
                             },
                             enabled = !light_loading,
                             shape = CircleShape,
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(themeMode.buttonColor)),
                             modifier = Modifier.fillMaxSize(), // Fill the box size to ensure the button takes full space
                             contentPadding = PaddingValues(2.dp)
                         ) {
@@ -936,7 +962,7 @@ fun DeviceCard(
                                     text = if (isButtonEnabled) "ON" else "OFF",
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.Black
+                                    color = Color(themeMode.textButtonColor)
                                 )
                             }
 
@@ -958,7 +984,7 @@ fun DeviceCard(
                         },
                         enabled = true,
                         shape = CircleShape,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(themeMode.buttonColor)),
                         modifier = Modifier.width(70.dp)
                             .height(36.dp),// Size of the button
                         contentPadding = PaddingValues(2.dp)
@@ -967,7 +993,7 @@ fun DeviceCard(
                             text = if (isButtonEnabled) "ON" else "OFF",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.Black
+                            color = Color(themeMode.textButtonColor)
                         )
                     }
 
@@ -1045,7 +1071,7 @@ fun DeviceCard(
                             },
                             enabled = !door_loading,
                             shape = CircleShape,
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(themeMode.buttonColor)),
                             modifier = Modifier.fillMaxSize(), // Fill the box size to ensure the button takes full space
                             contentPadding = PaddingValues(2.dp)
                         ) {
@@ -1057,10 +1083,10 @@ fun DeviceCard(
                                 )
                             } else {
                                 Text(
-                                    text = if (isButtonEnabled) "lock" else "unlock",
+                                    text = if (isButtonEnabled) "LOCK" else "UNLOCK",
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.Black
+                                    color = Color(themeMode.textButtonColor)
                                 )
 
                             }
@@ -1272,7 +1298,7 @@ fun DeviceCard(
                             },
                             enabled = !heater_loading,
                             shape = CircleShape,
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(themeMode.buttonColor)),
                             modifier = Modifier.fillMaxSize(), // Fill the box size to ensure the button takes full space
                             contentPadding = PaddingValues(2.dp)
                         ) {
@@ -1287,7 +1313,7 @@ fun DeviceCard(
                                     text = if (isButtonEnabled) "ON" else "OFF",
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.Black
+                                    color = Color(themeMode.textButtonColor)
                                 )
                             }
 

@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.test.R
 import com.example.test.objects.PinManager
+import com.example.test.objects.ThemeMode
 import com.example.test.objects.TokenManager
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -64,6 +65,10 @@ fun SettingsScreen(navController: NavController) {
     val cardColor = Color(0xFF1A2A5B)
     val textColor = Color.White
     val context = LocalContext.current
+    val themeMode = remember { ThemeMode.getInstance(context) }
+    var isLightModeEnabled by remember {
+        mutableStateOf(themeMode.isLightMode()) // true = light, false = dark
+    }
 
     var darkModeEnabled by remember { mutableStateOf(false) }
     var userName by remember { mutableStateOf("Mathieu Khoury") }
@@ -315,17 +320,20 @@ fun SettingsScreen(navController: NavController) {
 
         // Dark/Light Mode (top only)
         SettingItem(
-            label = "Dark/Light Mode",
+            label = "Light Mode",
             cardColor = cardColor,
             textColor = textColor,
             shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
             onClick = {
-                // Dark/ light mode shu badak fia
+                // TODO
             },
             trailingContent = {
                 Switch(
-                    checked = darkModeEnabled,
-                    onCheckedChange = { darkModeEnabled = it },
+                    checked = isLightModeEnabled,
+                    onCheckedChange = {
+                        isLightModeEnabled = it
+                        themeMode.setIsLightMode(it)
+                    },
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = Color.White,
                         uncheckedThumbColor = Color.Gray
