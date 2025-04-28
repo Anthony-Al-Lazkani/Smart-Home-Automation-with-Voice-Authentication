@@ -103,3 +103,5 @@ websockets==15.0
 
 pip~=25.0.1
 pyserial~=3.5
+murmurhash~=1.0.12
+spacy~=3.8.5

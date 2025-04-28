@@ -136,7 +136,7 @@ class DeviceViewModel : ViewModel() {
                     }
                 } catch (e: Exception) {
                     // Optional: handle error here
-                    error = "Error: ${e.localizedMessage}"
+                    error = "Could not connect to the server. Please try again later."
                 }
                 delay(5000)
             }
@@ -383,7 +383,7 @@ fun TimerCard() {
                     Toast.makeText(context, "Failed to fetch timers", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
-                Toast.makeText(context, "Error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Could not connect to the server. Please try again later.", Toast.LENGTH_SHORT).show()
             } finally {
                 isLoading = false
             }
@@ -511,6 +511,8 @@ fun TimerPopup(onDismiss: () -> Unit) {
     var deviceTimerApi = RetrofitInstance.getDeviceTimerApi()
     var setTimerLoading by remember { mutableStateOf(false) }
 
+    var selectedDevicesList by remember { mutableStateOf(listOf("lights", "fan", "heater")) }
+
 
     var onTime by remember { mutableStateOf("") }
     var offTime by remember { mutableStateOf("") }
@@ -569,6 +571,7 @@ fun TimerPopup(onDismiss: () -> Unit) {
                             })
                         }
                     }
+
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -637,9 +640,11 @@ fun TimerPopup(onDismiss: () -> Unit) {
                         }
                         coroutineScope.launch {
                             try {
+                                val token = TokenManager.getToken(context) ?: ""
                                 val response = deviceTimerApi.setDeviceTimer(
                                     deviceType = selectedDevice,
                                     timerRequest = SetDeviceTimerRequest(
+                                        token = token,
                                         on_time = if (onTime.isBlank()) null else onTime,
                                         off_time = if (offTime.isBlank()) null else offTime
                                     )
@@ -658,7 +663,7 @@ fun TimerPopup(onDismiss: () -> Unit) {
                                 val errorMessage = JSONObject(error ?: "{}").optString("detail", "An error occurred")
                                 Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
                             } catch (e: Exception) {
-                                Toast.makeText(context, "An unexpected error occurred: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "An unexpected error occurred: Could not connect to the server. Please try again later.", Toast.LENGTH_SHORT).show()
                             } finally {
                                 setTimerLoading = false
                             }
@@ -838,12 +843,16 @@ fun DeviceCard(
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
     var light_loading by remember { mutableStateOf(false) }
+    var fan_loading by remember { mutableStateOf(false) }
+    var fan_high_loading by remember { mutableStateOf(false) }
+
     var heater_loading by remember { mutableStateOf(false) }
     var door_loading by remember { mutableStateOf(false) }
     var confirm_door_loading by remember { mutableStateOf(false) }
     val token = TokenManager.getToken(context) ?: ""
     val tokenBody = TokenBody(token = token)
     val themeMode = ThemeMode.getInstance(context)
+    var isHighSpeedOn by remember { mutableStateOf(false) }
     Card(
         modifier = Modifier
             .size(width = 150.dp, height = 180.dp)
@@ -959,7 +968,7 @@ fun DeviceCard(
                                 )
                             } else {
                                 Text(
-                                    text = if (isButtonEnabled) "ON" else "OFF",
+                                    text = if (device.isOn) "ON" else "OFF",
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color(themeMode.textButtonColor)
@@ -977,61 +986,114 @@ fun DeviceCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // First button: toggles ON/OFF and enables/disables the other buttons
                     Button(
                         onClick = {
-                            onToggle(!isButtonEnabled)
+                            coroutineScope.launch {
+                                fan_loading = true
+                                try {
+                                    if (device.isOn) {
+                                        val response = controlApi.controlDevice("fan_off", tokenBody)
+                                    } else {
+                                        val response = controlApi.controlDevice("fan_on", tokenBody)
+                                    }
+                                } catch (e: HttpException) {
+                                    try {
+                                        // Extract the error message from the error body
+                                        val errorBody = e.response()?.errorBody()?.string()
+                                        val jsonObject = errorBody?.let {
+                                            JSONObject(it)
+                                        } ?: JSONObject() // Fallback to an empty JSONObject if errorBody is null
+
+                                        val errorMessage = jsonObject.optString("detail", "An error occurred")
+
+                                        // Show error as a toast message, ensure errorMessage is non-null
+                                        Toast.makeText(context, errorMessage ?: "An error occurred", Toast.LENGTH_LONG).show()
+                                    } catch (jsonException: Exception) {
+                                        // If JSON parsing fails, show a generic message
+                                        Toast.makeText(context, "An error occurred while parsing the response.", Toast.LENGTH_LONG).show()
+                                    }
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "An unknown error occurred: ${e.message}", Toast.LENGTH_LONG).show()
+                                } finally {
+                                    fan_loading = false
+                                }
+                            }
                         },
-                        enabled = true,
+                        enabled = !fan_loading,
                         shape = CircleShape,
                         colors = ButtonDefaults.buttonColors(containerColor = Color(themeMode.buttonColor)),
                         modifier = Modifier.width(70.dp)
                             .height(36.dp),// Size of the button
                         contentPadding = PaddingValues(2.dp)
                     ) {
-                        Text(
-                            text = if (isButtonEnabled) "ON" else "OFF",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(themeMode.textButtonColor)
-                        )
+                        if (fan_loading) {
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                strokeWidth = 2.dp,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        } else {
+                            Text(
+                                text = if (device.isOn) "ON" else "OFF",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(themeMode.textButtonColor)
+                            )
+                        }
                     }
 
 
                     // Second button: only enabled if the first button is ON
-                    Button(
-                        onClick = {
-                            println("setting speed to level 2")
-                        },
-                        enabled = isButtonEnabled,  // Enabled only if the first button is ON
-                        shape = CircleShape,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                        modifier = Modifier.size(36.dp),
-                        contentPadding = PaddingValues(2.dp)
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.speed2),
-                            contentDescription = "Navigate",
-                            tint = device.color
-                        )
-                    }
-
-                    // Third button: only enabled if the first button is ON
-                    Button(
-                        onClick = {
-                            println("setting speed to level 3")
-                        },
-                        enabled = isButtonEnabled,  // Enabled only if the first button is ON
-                        shape = CircleShape,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                        modifier = Modifier.size(36.dp),
-                        contentPadding = PaddingValues(2.dp)
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.speed3),
-                            contentDescription = "Navigate",
-                            tint = device.color
-                        )
+                    if (device.isOn) {
+                        Button(
+                            onClick = {
+                                coroutineScope.launch {
+                                    fan_high_loading = true
+                                    try {
+                                        val response = if (!isHighSpeedOn) {
+                                            controlApi.controlDevice("fan_high", tokenBody)
+                                        } else {
+                                            controlApi.controlDevice("fan_on", tokenBody)
+                                        }
+                                        isHighSpeedOn = !isHighSpeedOn  // Toggle after successful API call
+                                    } catch (e: HttpException) {
+                                        try {
+                                            val errorBody = e.response()?.errorBody()?.string()
+                                            val jsonObject = errorBody?.let { JSONObject(it) } ?: JSONObject()
+                                            val errorMessage = jsonObject.optString("detail", "An error occurred")
+                                            Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+                                        } catch (jsonException: Exception) {
+                                            Toast.makeText(context, "An error occurred while parsing the response.", Toast.LENGTH_LONG).show()
+                                        }
+                                    } catch (e: Exception) {
+                                        Toast.makeText(context, "An unknown error occurred: ${e.message}", Toast.LENGTH_LONG).show()
+                                    } finally {
+                                        fan_high_loading = false
+                                    }
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = if (isHighSpeedOn) Color.Green else Color(themeMode.buttonColor)),
+                            shape = CircleShape,
+                            modifier = Modifier
+                                .width(70.dp)
+                                .height(36.dp),
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            if (fan_high_loading) {
+                                CircularProgressIndicator(
+                                    color = Color.White,
+                                    strokeWidth = 2.dp,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            } else {
+                                Text(
+                                    text = "HS",   // High Speed
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(themeMode.textButtonColor)
+                                )
+                            }
+                        }
                     }
                 }
             }

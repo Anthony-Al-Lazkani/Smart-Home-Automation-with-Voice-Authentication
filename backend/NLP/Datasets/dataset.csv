@@ -1,151 +1,217 @@
 command,text
 lights_on,turn on the lights
+lights_on,turn on the light
 lights_on,turn the lights on
 lights_on,switch on the lights
-lights_on,turn the lights on please
-lights_on,please turn on the lights
-lights_on,lights on please
-lights_on,switch on lights
-lights_on,can you turn the lights on?
-lights_on,can you please switch on the lights?
-lights_on,turn on the light
-lights_on,turn on that light
-lights_on,lights on now
-lights_on,make the lights go on
-lights_on,turn lights on
-lights_on,please turn the lights on
 lights_on,activate the lights
-lights_on,make the lights on
-lights_on,switch the lights on
-lights_on,open the lights
+lights_on,lights on
+lights_on,lights on now
+lights_on,turn on the bedroom lights
+lights_on,turn on the kitchen lights
+lights_on,turn on the living room lights
+lights_on,turn on the hallway lights
+lights_on,make the room brighter
+lights_on,brighten the room with lights
+lights_on,illuminate the room
+lights_on,turn on all the lights
+lights_on,activate all the lights
+lights_on,lights up the house
+lights_on,light up the bedroom
+lights_on,light up the kitchen
+lights_on,light up the hallway
+lights_on,switch on all room lights
+lights_on,enable the lights
+lights_on,power on the lights
+lights_on,brighten the hallway
+lights_on,light the bedroom
+lights_on,turn the ceiling lights on
+lights_on,activate the living room lights
+lights_on,turn on house lights
+lights_on,lights on in the kitchen
+lights_on,turn on upstairs lights
 lights_off,turn off the lights
+lights_off,turn off the light
 lights_off,turn the lights off
 lights_off,switch off the lights
-lights_off,please switch off the lights
-lights_off,turn the lights off please
-lights_off,can you turn off the lights?
-lights_off,switch off lights
-lights_off,turn lights off
-lights_off,please turn the lights off
-lights_off,turn off that light
-lights_off,lights off now
-lights_off,make the lights go off
-lights_off,turn the light off
-lights_off,switch the lights off
-lights_off,open the lights off
-lights_off,shut the lights off
 lights_off,deactivate the lights
-lights_off,close the lights
-lights_on,please turn on the bedroom lights
-lights_on,turn on the kitchen lights
-lights_on,activate the living room lights
+lights_off,lights off
+lights_off,lights off now
+lights_off,turn off the bedroom lights
 lights_off,turn off the kitchen lights
-lights_off,deactivate the bedroom lights
-lights_off,close the living room lights
-lights_on,turn on the ceiling light
-lights_off,turn off the ceiling light
-lights_on,can you turn on the hallway lights?
+lights_off,turn off the living room lights
 lights_off,turn off the hallway lights
-lights_on,activate all the lights
-lights_off,deactivate all the lights
-lights_on,turn all the lights on
-lights_off,turn all the lights off
-lights_on,please turn the lights on in the living room
-lights_off,turn the lights off in the bedroom
-lights_on,can you activate the light in the kitchen?
-lights_off,switch off the light in the hallway
-lights_on,switch the light on
-lights_on,turn on the lights please
-lights_off,switch off the lights now
-lights_on,activate the lights now
-lights_off,deactivate the lights now
-lights_on,lights on in the bedroom
-lights_off,lights off in the living room
-lights_on,switch the lights on please
-lights_off,switch the lights off please
-lights_on,turn the lights on immediately
-lights_off,turn off the lights immediately
-lights_on,can you turn on the light for me?
-lights_off,can you turn off the light for me?
-lights_on,please switch on the living room lights
-lights_off,please switch off the kitchen lights
 lights_off,make the room darker
+lights_off,dim the lights
+lights_off,extinguish the lights
+lights_off,turn off all the lights
+lights_off,deactivate all the lights
+lights_off,lights down
+lights_off,shut down the lights
+lights_off,disable the lights
+lights_off,turn off the ceiling lights
+lights_off,darken the room
+lights_off,turn off upstairs lights
+lights_off,lights off in the kitchen
+lights_off,lights off in the bedroom
+lights_off,switch off all lights
+lights_off,cut off the lights
+lights_off,power off the lights
+lights_off,darken the living room
+lights_off,kill the lights
+lights_off,shut off all the lights
 heater_on,turn on the heater
 heater_on,turn the heater on
 heater_on,switch on the heater
-heater_on,turn the heater on please
-heater_on,please turn on the heater
-heater_on,heater on please
-heater_on,switch on heater
-heater_on,can you turn the heater on?
-heater_on,can you please switch on the heater?
-heater_on,turn on the heat
-heater_on,turn on that heater
-heater_on,heater on now
-heater_on,make the heater go on
-heater_on,turn heater on
-heater_on,please turn on the heater
 heater_on,activate the heater
-heater_on,make the heater on
-heater_on,switch the heater on
-heater_on,open the heater
+heater_on,heater on
+heater_on,heater on now
+heater_on,turn on the bedroom heater
+heater_on,turn on the living room heater
+heater_on,turn on the kitchen heater
+heater_on,turn on the hallway heater
+heater_on,start the heater
+heater_on,enable the heater
+heater_on,power on the heater
+heater_on,make the room warmer
+heater_on,warm up the room
+heater_on,turn on all heaters
+heater_on,activate all heaters
+heater_on,turn on the house heater
+heater_on,heat up the bedroom
+heater_on,heat up the kitchen
+heater_on,warm the living room
+heater_on,start the central heating
+heater_on,activate heating system
+heater_on,turn on the main heater
+heater_on,heater activate
+heater_on,ignite the heater
+heater_on,heater start
+heater_on,heater up
+heater_on,heat the hallway
+heater_on,heater power on
 heater_off,turn off the heater
 heater_off,turn the heater off
 heater_off,switch off the heater
-heater_off,please switch off the heater
-heater_off,turn the heater off please
-heater_off,can you turn off the heater?
-heater_off,switch off heater
-heater_off,turn heater off
-heater_off,please turn off the heater
-heater_off,turn off that heater
-heater_off,heater off now
-heater_off,make the heater go off
-heater_off,turn the heat off
-heater_off,switch the heater off
-heater_off,open the heater off
-heater_off,shut the heater off
 heater_off,deactivate the heater
-heater_off,close the heater
-heater_on,please turn on the bedroom heater
-heater_on,turn on the kitchen heater
-heater_on,activate the living room heater
+heater_off,heater off
+heater_off,heater off now
+heater_off,turn off the bedroom heater
+heater_off,turn off the living room heater
 heater_off,turn off the kitchen heater
-heater_off,deactivate the bedroom heater
-heater_off,close the living room heater
-heater_on,turn on the ceiling heater
-heater_off,turn off the ceiling heater
-heater_on,can you turn on the hallway heater?
 heater_off,turn off the hallway heater
-heater_on,activate all the heaters
-heater_off,deactivate all the heaters
-heater_on,turn all the heaters on
-heater_off,turn all the heaters off
-heater_on,please turn the heater on in the living room
-heater_off,turn the heater off in the bedroom
-heater_on,can you activate the heater in the kitchen?
-heater_off,switch off the heater in the hallway
-heater_on,switch the heater on
-heater_on,turn on the heater please
-heater_off,switch off the heater now
-heater_on,activate the heater now
-heater_off,deactivate the heater now
-heater_on,heater on in the bedroom
-heater_off,heater off in the living room
-heater_on,switch the heater on please
-heater_off,switch the heater off please
-heater_on,turn the heater on immediately
-heater_off,turn off the heater immediately
-heater_on,can you turn on the heater for me?
-heater_off,can you turn off the heater for me?
-heater_on,please switch on the living room heater
-heater_off,please switch off the kitchen heater
+heater_off,stop the heater
+heater_off,disable the heater
+heater_off,power off the heater
 heater_off,make the room cooler
+heater_off,cool down the room
+heater_off,turn off all heaters
+heater_off,deactivate all heaters
+heater_off,turn off the house heater
+heater_off,shut down the heating
+heater_off,shut off the heater
+heater_off,heater deactivate
+heater_off,heater stop
+heater_off,kill the heater
+heater_off,heater shut down
+heater_off,cool the bedroom
+heater_off,cool the kitchen
+heater_off,cool the living room
+heater_off,turn off central heating
+heater_off,stop the central heater
+heater_off,turn off heating system
+fan_on,turn on the fan
+fan_on,turn the fan on
+fan_on,switch on the fan
+fan_on,activate the fan
+fan_on,fan on
+fan_on,fan on now
+fan_on,turn on the bedroom fan
+fan_on,turn on the living room fan
+fan_on,turn on the kitchen fan
+fan_on,turn on the hallway fan
+fan_on,start the fan
+fan_on,enable the fan
+fan_on,power on the fan
+fan_on,make the room cooler
+fan_on,cool down the room
+fan_on,start the cooling fan
+fan_on,activate air circulation
+fan_on,turn on the ceiling fan
+fan_on,turn on the standing fan
+fan_on,fan activate
+fan_on,turn on all fans
+fan_on,activate all fans
+fan_on,cool the bedroom with fan
+fan_on,turn the fan on
+fan_on,fan start
+fan_on,fan breeze on
+fan_on,air circulation start
+fan_on,power on ceiling fan
+fan_on,start fan in bedroom
+fan_high, turn the fan on high speed
+fan_high, turn the fan on high speed mode
+fan_high, fan on high speed
+fan_high, activate fan high speed
+fan_high, turn fan to high speed
+fan_high, set the fan to full speed
+fan_high, increase the fan speed to high
+fan_high, put the fan on fast speed
+fan_high, activate the fan on high
+fan_high, turn the fan to maximum speed
+fan_high, switch fan to highest speed
+fan_high, turn the fan up to high speed
+fan_high, set the fan to its highest setting
+fan_high, speed up the fan to high
+fan_high, increase fan speed to max
+fan_high, turn the fan to full blast
+fan_high, boost the fan to maximum
+fan_high, make the fan run on high speed
+fan_high, turn fan speed to the highest
+fan_high, set the fan speed to max
+fan_high, switch the fan to its highest setting
+fan_high, crank up the fan speed to high
+fan_high, turn the fan on fast mode
+fan_high, speed the fan to full power
+fan_high, run the fan on high
+fan_high, make the fan operate at high speed
+fan_high, set the fan on maximum mode
+fan_high, set the fan to turbo speed
+fan_high, adjust the fan to high speed
+fan_high, change the fan speed to fast
+fan_high, put the fan on maximum mode
+fan_high, turn the fan to its maximum setting
+fan_high, push the fan speed to high
+fan_high, make the fan run at full speed
+fan_high, set the fan to its fastest mode
+fan_off,turn off the fan
+fan_off,turn the fan off
+fan_off,switch off the fan
+fan_off,deactivate the fan
+fan_off,fan off
+fan_off,fan off now
+fan_off,turn off the bedroom fan
+fan_off,turn off the living room fan
+fan_off,turn off the kitchen fan
+fan_off,turn off the hallway fan
+fan_off,stop the fan
+fan_off,disable the fan
+fan_off,power off the fan
+fan_off,shut down the fan
+fan_off,stop the cooling fan
+fan_off,stop air circulation
+fan_off,turn off the ceiling fan
+fan_off,turn off the standing fan
+fan_off,fan deactivate
+fan_off,shut off the fan
+fan_off,stop the air breeze
+fan_off,turn off all fans
+fan_off,deactivate all fans
+fan_off,fan shut down
+fan_off,stop fan in bedroom
+fan_off,fan off in living room
+fan_off,turn off house fans
 door_unlock,unlock the door
 door_unlock,open the door
-door_unlock,can you unlock the door?
-door_unlock,please unlock the door
-door_unlock,door open please
 door_unlock,unbolt the door
 door_unlock,release the door lock
 door_unlock,deactivate the door lock
@@ -163,11 +229,19 @@ door_unlock,disengage the lock
 door_unlock,unlock the main door
 door_unlock,open the front door
 door_unlock,open the back door
+door_unlock,open the side door
+door_unlock,unbolt the main door
+door_unlock,open house door
+door_unlock,grant house entry
+door_unlock,release front door
+door_unlock,disengage front door lock
+door_unlock,allow entrance now
+door_unlock,unseal main entrance
+door_unlock,disengage the main door
+door_unlock,open upstairs door
+door_unlock,unlock back entrance
 door_lock,lock the door
 door_lock,close the door
-door_lock,can you lock the door?
-door_lock,please lock the door
-door_lock,door closed please
 door_lock,bolt the door
 door_lock,secure the door
 door_lock,activate the door lock
@@ -175,10 +249,24 @@ door_lock,shut the door
 door_lock,seal the door
 door_lock,engage the lock
 door_lock,lock the main door
-door_lock,close the entrance
 door_lock,lock the entrance
 door_lock,lock the front door
 door_lock,lock the back door
 door_lock,secure the entrance
 door_lock,fasten the door
 door_lock,door lock now
+door_lock,lock the side door
+door_lock,shut the main door
+door_lock,lock the upstairs door
+door_lock,lock house door
+door_lock,engage security lock
+door_lock,fasten the main entrance
+door_lock,shut and lock the door
+door_lock,activate house lock
+door_lock,lock back entrance
+door_lock,secure front entrance
+door_lock,seal main door
+door_lock,shut down the entrance
+door_lock,lock the apartment door
+door_lock,secure the living room door
+door_lock,engage the upstairs lock

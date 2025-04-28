@@ -146,6 +146,7 @@ interface DevicesSummaryApi {
 
 // Timer setup
 data class SetDeviceTimerRequest(
+    val token : String,
     val on_time: String?,  // Nullable to allow optional fields
     val off_time: String?
 )

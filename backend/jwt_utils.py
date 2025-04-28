@@ -1,4 +1,6 @@
 import jwt
+from jwt import ExpiredSignatureError
+from jwt.exceptions import PyJWTError
 from datetime import datetime, timedelta
 from fastapi import HTTPException
 from pydantic import BaseModel
@@ -30,9 +32,9 @@ def decode_token(token: str):
     try:
         decoded_token = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return decoded_token
-    except jwt.ExpiredSignatureError:
+    except ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token has expired")
-    except jwt.JWTError:
+    except PyJWTError:
         raise HTTPException(status_code=401, detail="Could not validate credentials")
 
 def get_current_role(token: str = Header(...)):

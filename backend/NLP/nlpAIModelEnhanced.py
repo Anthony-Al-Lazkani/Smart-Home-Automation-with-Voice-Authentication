@@ -21,7 +21,7 @@ def smart_clean(text):
     return text
 
 # === Load dataset ===
-df = pd.read_csv("Datasets/dataset2.csv")  # Make sure the CSV file is updated
+df = pd.read_csv("Datasets/dataset.csv")  # Make sure the CSV file is updated
 df['text'] = df['text'].apply(smart_clean)
 
 X = df['text']

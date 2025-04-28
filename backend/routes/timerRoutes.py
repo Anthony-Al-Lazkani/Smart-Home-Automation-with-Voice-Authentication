@@ -9,12 +9,14 @@ from fastapi.encoders import jsonable_encoder
 import time
 from datetime import datetime, timedelta
 import asyncio
-
+from jwt_utils import get_current_role
 from serialCommunicationUtils import send_message
 
 timerRouter = APIRouter()
 
 SessionDep = Annotated[Session, Depends(get_session)]
+
+GUEST_ALLOWED_DEVICES = {"lights"}
 
 
 # Add a new device
@@ -90,6 +92,7 @@ async def sleep_and_trigger_action(device_type: str, action: str, action_time: s
 
 # Set new timer
 class SetDeviceTimerRequest(BaseModel):
+    token : str
     on_time : Optional[str] = None
     off_time : Optional[str] = None
 
@@ -100,6 +103,12 @@ async def update_device_timer(
     session: SessionDep,
     background_tasks: BackgroundTasks
 ) -> JSONResponse:
+
+    role = get_current_role(device_timer.token)
+    if role == "guest" and device_type not in GUEST_ALLOWED_DEVICES:
+        raise HTTPException(status_code=403, detail="Guests are not allowed to set timer for this device"
+        )
+
     # Check if the device exists
     existing_device_timer = session.exec(select(DeviceTimer).where(DeviceTimer.device_type == device_type)).first()
 

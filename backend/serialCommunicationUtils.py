@@ -18,7 +18,10 @@ device_action_mapping = {
     "heater_on": ("heater", True),
     "heater_off": ("heater", False),
     "door_lock": ("door", False),
-    "door_unlock": ("door", True)
+    "door_unlock": ("door", True),
+    "fan_on": ("fan", True),
+    "fan_off": ("fan", False),
+    "fan_high" : ("fan", True)
 }
 
 def open_serial_connection(port='/dev/ttyACM0', baudrate=9600, timeout=1.0):
