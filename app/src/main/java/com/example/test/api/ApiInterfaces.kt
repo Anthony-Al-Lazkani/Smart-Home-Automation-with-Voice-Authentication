@@ -15,6 +15,8 @@ import retrofit2.http.PUT
 import retrofit2.http.Part
 import retrofit2.http.Path
 import com.google.gson.annotations.SerializedName
+import retrofit2.Call
+import retrofit2.http.Header
 
 
 // Login
@@ -191,4 +193,41 @@ data class GuestLoginResponse(
 interface GuestLoginApi {
     @POST("auth/login/guest")
     suspend fun guestLogin(): Response<GuestLoginResponse>
+}
+
+// Api for getting the user's information in the settings page
+data class UserResponse(
+    val username: String,
+    val email: String,
+    val role: String
+)
+
+
+interface UserApi {
+    @GET("auth/users/me")
+    suspend fun getCurrentUser(
+        @Header("Authorization") token: String
+    ): Response<UserResponse>
+
+    @GET("auth/users/all")
+    suspend fun getAllUsers(
+        @Header("Authorization") token: String
+    ): Response<List<UserResponse>>
+}
+
+data class ChangeRoleRequest(
+    val token: String,
+    val role: String  // Should match RoleEnum values like "admin", "guest", etc.
+)
+
+data class ChangeRoleResponse(
+    val message: String
+)
+
+interface PermissionApi {
+    @PUT("auth/users/{username}/role")
+    suspend fun updateUserRole(
+        @Path("username") username: String,
+        @Body request: ChangeRoleRequest
+    ): Response<ChangeRoleResponse>
 }

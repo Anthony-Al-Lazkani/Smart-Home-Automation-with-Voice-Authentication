@@ -10,6 +10,7 @@ import time
 from datetime import datetime, timedelta
 import asyncio
 from jwt_utils import get_current_role
+from models.userModel import RoleEnum
 from serialCommunicationUtils import send_message
 
 timerRouter = APIRouter()
@@ -18,8 +19,10 @@ SessionDep = Annotated[Session, Depends(get_session)]
 
 GUEST_ALLOWED_DEVICES = {"lights"}
 
-
-# Add a new device
+# class DeviceTimerRequest(BaseModel):
+#     device_type : str
+#
+# # Add a new device
 # @timerRouter.post("/")
 # async def add_device(device_timer: DeviceTimerRequest, session: SessionDep) -> JSONResponse:
 #     # Check if device already exists
@@ -105,7 +108,7 @@ async def update_device_timer(
 ) -> JSONResponse:
 
     role = get_current_role(device_timer.token)
-    if role == "guest" and device_type not in GUEST_ALLOWED_DEVICES:
+    if role == RoleEnum.guest and device_type not in GUEST_ALLOWED_DEVICES:
         raise HTTPException(status_code=403, detail="Guests are not allowed to set timer for this device"
         )
 

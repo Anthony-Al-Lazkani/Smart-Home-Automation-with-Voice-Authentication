@@ -1,6 +1,6 @@
-#define LED_PIN 35
-#define HEATER_PIN 28
-#define DOOR_PIN 32
+#define LED_PIN 40 
+#define HEATER_PIN 50
+#define DOOR_PIN 22
 #define SECURITY_PIN 31
 
 #define LED_PIR_PIN 27
@@ -14,15 +14,12 @@
 #define PIN_OFF 6
 #define PIN_ON_NORMAL 5
 
-bool pirDetection = false;
-unsigned long pirLastDetectedTime = 0;
-
 
 void setup() {
     pinMode(LED_PIN, OUTPUT);
     pinMode(HEATER_PIN, OUTPUT);
     pinMode(DOOR_PIN, OUTPUT);
-    pinMode(SECURITY_PIN,INPUT);
+    pinMode(SECURITY_PIN,INPUT_PULLUP);
     pinMode(PIR_PIN,INPUT);
     pinMode(LED_PIR_PIN,OUTPUT);
 
@@ -37,23 +34,6 @@ void setup() {
 
 void loop() {
 
-    int sensorValue = digitalRead(PIR_PIN);
-        int SecurityStatus = digitalRead(SECURITY_PIN);
-
-        String source_security = "manual";
-
-       if (sensorValue == HIGH && SecurityStatus == HIGH){
-            digitalWrite(LED_PIR_PIN,HIGH);
-            pirDetection = true;
-            pirLastDetectedTime = millis();
-
-            Serial.println("security_led_on|" + source_security);
-       } else if(pirDetection && millis() - pirLastDetectedTime >= 10000){
-            digitalWrite(LED_PIR_PIN,LOW);
-            pirDetection = false;
-            Serial.println("security_led_off|" + source_security);
-       }
-
         if (Serial.available() > 0) {
         String fullCommand = Serial.readStringUntil('\n');
         fullCommand.trim();
@@ -62,7 +42,24 @@ void loop() {
         String command = fullCommand;
         String source = "manual";
 
-      
+        if (digitalRead(SECURITY_PIN) == HIGH) {
+            int sensorValue = digitalRead(PIR_PIN); // Read PIR sensor value
+    
+            if (sensorValue == HIGH) {
+            digitalWrite(LED_PIR_PIN, HIGH);
+            delay(100);
+            } else {
+            // No motion, turn off the LED
+            digitalWrite(LED_PIR_PIN, LOW);
+            delay(100);
+            }
+        } 
+
+        else if (digitalRead(SECURITY_PIN) == LOW){
+            digitalWrite(LED_PIR_PIN, LOW);
+            delay(100);
+        }  
+
         if (sepIndex != -1) {
             command = fullCommand.substring(0, sepIndex);
             source = fullCommand.substring(sepIndex + 1);
@@ -116,7 +113,9 @@ void loop() {
         } else if (command == "security_off") {  
         // High speed (only if OFF and normal are LOW)
             digitalWrite(SECURITY_PIN, LOW);
-            // digitalWrite(LED_PIR_PIN, LOW);
+            digitalWrite(LED_PIR_PIN, LOW);
+
+            
             Serial.println("security_off|" + source);
         }else {
             Serial.println("false");

@@ -8,6 +8,8 @@ from sqlmodel import select
 from models.deviceModel import Device
 from pydantic import BaseModel
 from datetime import datetime, timezone
+
+from models.userModel import RoleEnum
 from serialCommunicationUtils import send_message
 from jwt_utils import get_current_role
 
@@ -28,7 +30,9 @@ device_action_mapping = {
     "heater_on": ("heater", True),
     "heater_off": ("heater", False),
     "door_lock": ("door", False),
-    "door_unlock": ("door", True)
+    "door_unlock": ("door", True),
+    "security_on" : ("security", True),
+    "security_off" : ("security", False),
 }
 
 GUEST_ALLOWED_COMMANDS = {"lights_on", "lights_off"}
@@ -137,7 +141,7 @@ class TokenBody(BaseModel):
 @deviceManagementRouter.post("/device/{command}")
 async def manual_control(command : str, body : TokenBody):
     role = get_current_role(body.token)
-    if role == "guest" and command not in GUEST_ALLOWED_COMMANDS:
+    if role == RoleEnum.guest and command not in GUEST_ALLOWED_COMMANDS:
         raise HTTPException(
             status_code=403,
             detail="Guests are not allowed to manually control this device"

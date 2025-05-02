@@ -12,6 +12,8 @@ import joblib
 from deviceManagementUtils import update_device_status
 from database import get_session
 from sqlalchemy.orm import Session
+
+from models.userModel import RoleEnum
 from serialCommunicationUtils import send_message
 
 
@@ -51,10 +53,6 @@ async def upload_voice(token: str = Form(...), audio: UploadFile = File(...)):
     if not token:
         raise HTTPException(status_code=400, detail="Token is required")
 
-    role = get_current_role(token)
-    if role != "admin":
-        raise HTTPException(status_code=403, detail="Guests are not allowed to upload voice samples")
-
     # Save the raw AAC file temporarily
     username = decode_token(token)["username"]
     raw_aac_path = os.path.join(TEMP_DIR, f"{username}.aac")
@@ -84,7 +82,7 @@ async def authenticate_voice(session: SessionDep, token: str = Form(...), audio:
         raise HTTPException(status_code=400, detail="Token is required")
     
     role = get_current_role(token)
-    if role != "admin" :
+    if role != RoleEnum.admin :
         raise HTTPException(status_code=403, detail="Guests are not allowed to use voice commands")
         
 

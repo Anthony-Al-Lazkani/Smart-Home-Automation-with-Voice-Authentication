@@ -22,7 +22,7 @@ class TokenData(BaseModel):
 def create_access_token(data: TokenData):
     to_encode = data.dict()
 
-    expire = datetime.utcnow() + timedelta(hours=24)
+    expire = datetime.utcnow() + timedelta(hours=3)
     to_encode.update({"exp": expire})
 
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
@@ -40,4 +40,19 @@ def decode_token(token: str):
 def get_current_role(token: str = Header(...)):
     decoded = decode_token(token)
     return decoded.get("role")
+
+def get_current_username(token: str = Header(...)):
+    decoded = decode_token(token)
+    return decoded.get("username")
+
+def get_current_username_from_header(Authorization: str = Header(...)):  # Use Authorization header if needed
+    token = Authorization.split(" ")[1]
+    decoded = decode_token(token)
+    return decoded.get("username")
+
+def get_current_role_from_header(Authorization: str = Header(...)):  # Use Authorization header if needed
+    token = Authorization.split(" ")[1]
+    decoded = decode_token(token)
+    return decoded.get("role")
+
 

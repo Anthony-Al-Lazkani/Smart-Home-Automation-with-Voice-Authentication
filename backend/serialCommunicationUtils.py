@@ -21,10 +21,14 @@ device_action_mapping = {
     "door_unlock": ("door", True),
     "fan_on": ("fan", True),
     "fan_off": ("fan", False),
-    "fan_high" : ("fan", True)
+    "fan_high" : ("fan", True),
+    "security_on" : ("security", True),
+    "security_off" : ("security", False),
+    "security_led_on" : ("security_led", True),
+    "security_led_off" : ("security_led", False)
 }
 
-def open_serial_connection(port='/dev/ttyACM0', baudrate=9600, timeout=1.0):
+def open_serial_connection(port='/dev/ttyUSB0', baudrate=9600, timeout=1.0):
     """
     Opens the serial connection and returns the serial object.
     """
@@ -101,33 +105,6 @@ def serial_listener():
     finally:
         session.close()
 
-# async def handle_arduino_response(response: str, session : Session):
-#     global last_command_sent
-#
-#     if response not in device_action_mapping:
-#         print(f"⚠️ Unrecognized response from arduino: {response}")
-#         return
-#
-#     if last_command_sent is None:
-#         print(f"⚠️ Sudden event {response}.")
-#         device_info = device_action_mapping.get(response)
-#         if device_info:
-#             device_name, device_status = device_info
-#             print(f"✅ Updating {device_name} in DB to status: {device_status}")
-#             response = await update_device_status(device_name, device_status, session)
-#         else:
-#             print(f"⚠️ Unknown command: {last_command_sent}")
-#         return
-#
-#     device_info = device_action_mapping.get(last_command_sent)
-#     if device_info:
-#         device_name, device_status = device_info
-#         print(f"✅ Updating {device_name} in DB to status: {device_status}")
-#         response = await update_device_status(device_name, device_status, session)
-#     else:
-#         print(f"⚠️ Unknown command: {last_command_sent}")
-#
-#     last_command_sent = None
 
 async def handle_arduino_response(response: str, session: Session):
     global last_command_sent
