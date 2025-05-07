@@ -17,7 +17,6 @@ ALGORITHM = os.getenv("ALGORITHM")
 class TokenData(BaseModel):
     id : int
     username: str
-    role : str
 
 def create_access_token(data: TokenData):
     to_encode = data.dict()
@@ -37,9 +36,6 @@ def decode_token(token: str):
     except PyJWTError:
         raise HTTPException(status_code=401, detail="Could not validate credentials")
 
-def get_current_role(token: str = Header(...)):
-    decoded = decode_token(token)
-    return decoded.get("role")
 
 def get_current_username(token: str = Header(...)):
     decoded = decode_token(token)
@@ -49,10 +45,5 @@ def get_current_username_from_header(Authorization: str = Header(...)):  # Use A
     token = Authorization.split(" ")[1]
     decoded = decode_token(token)
     return decoded.get("username")
-
-def get_current_role_from_header(Authorization: str = Header(...)):  # Use Authorization header if needed
-    token = Authorization.split(" ")[1]
-    decoded = decode_token(token)
-    return decoded.get("role")
 
 

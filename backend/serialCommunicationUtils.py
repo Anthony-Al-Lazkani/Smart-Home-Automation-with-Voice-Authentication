@@ -1,7 +1,7 @@
 import serial
 import time
 import threading
-from deviceManagementUtils import update_device_status
+from deviceManagementUtils import update_device_status, update_indicator_status
 import asyncio
 from database import get_session
 from sqlalchemy.orm import Session
@@ -24,8 +24,19 @@ device_action_mapping = {
     "fan_high" : ("fan", True),
     "security_on" : ("security", True),
     "security_off" : ("security", False),
-    "security_led_on" : ("security_led", True),
-    "security_led_off" : ("security_led", False)
+    "ldr_on" : ("ldr", True),
+    "ldr_off" : ("ldr", False)
+}
+
+indicator_action_mapping = {
+    "security_on": ("security", True),
+    "security_off": ("security", False),
+    "fire_on" : ("fire", True),
+    "fire_off" : ("fire", False),
+    "gas_on" : ("gas", True),
+    "gas_off" : ("gas", False),
+    "earthquake_on" : ("earthquake", True),
+    "earthquake_off" : ("earthquake", False),
 }
 
 def open_serial_connection(port='/dev/ttyUSB0', baudrate=9600, timeout=1.0):
@@ -51,23 +62,6 @@ def close_serial_connection():
         print("⚠️ Serial connection is not open or already closed.")
 
 
-# def send_message(command: str):
-#     global ser, last_command_sent
-#
-#
-#     if ser is None or not ser.is_open:
-#         print("⚠️ Serial connection is not open. Opening connection...")
-#         open_serial_connection()  # Ensure the serial connection is open
-#
-#     try:
-#         # Send the command to Arduino
-#         time.sleep(2)
-#         ser.write(f"{command}\n".encode('utf-8'))
-#         print(f"Sent command: {command}")
-#         last_command_sent = command
-#
-#     except serial.SerialException as e:
-#         print(f"Error while sending message: {e}")
 
 def send_message(command: str, source: str = "manual"):
     global ser, last_command_sent
@@ -106,32 +100,84 @@ def serial_listener():
         session.close()
 
 
+# async def handle_arduino_response(response: str, session: Session):
+#     global last_command_sent
+#
+#     if "|" in response:
+#         command, source = response.split("|", 1)
+#     else:
+#         command = response
+#         source = "manual"
+#
+#     if command not in device_action_mapping:
+#         print(f"⚠️ Unrecognized command from Arduino: {command}")
+#         return
+#
+#     device_name, device_status = device_action_mapping[command]
+#
+#     print(f"✅ Updating {device_name} to {device_status} (source: {source})")
+#     await update_device_status(device_name, device_status, session)
+#
+#     if source == "timer":
+#         # Clear the on_time/off_time in DB
+#         if "on" in command:
+#             await reset_device_timer_field(device_name, "on_time", session)
+#         elif "off" in command:
+#             await reset_device_timer_field(device_name, "off_time", session)
+#
+#     last_command_sent = None
+
 async def handle_arduino_response(response: str, session: Session):
     global last_command_sent
 
+    # Parse command and source
     if "|" in response:
         command, source = response.split("|", 1)
     else:
         command = response
-        source = "manual"
+        source = "manual"  # default
 
-    if command not in device_action_mapping:
-        print(f"⚠️ Unrecognized command from Arduino: {command}")
+    # Handle source from Arduino: INDICATORS
+    if source == "arduino":
+        if command not in indicator_action_mapping:
+            print(f"⚠️ Unrecognized indicator command from Arduino: {command}")
+            return
+
+        indicator_name, indicator_status = indicator_action_mapping[command]
+        print(f"📡 [Arduino] Updating indicator '{indicator_name}' to {indicator_status}")
+        await update_indicator_status(indicator_name, indicator_status, session)
         return
 
-    device_name, device_status = device_action_mapping[command]
-
-    print(f"✅ Updating {device_name} to {device_status} (source: {source})")
-    await update_device_status(device_name, device_status, session)
-
+    # Handle source from Timer: DEVICES
     if source == "timer":
-        # Clear the on_time/off_time in DB
+        if command not in device_action_mapping:
+            print(f"⚠️ Unrecognized timer command: {command}")
+            return
+
+        device_name, device_status = device_action_mapping[command]
+        print(f"⏰ [Timer] Updating device '{device_name}' to {device_status}")
+        await update_device_status(device_name, device_status, session)
+
+        # Reset scheduled times
         if "on" in command:
             await reset_device_timer_field(device_name, "on_time", session)
         elif "off" in command:
             await reset_device_timer_field(device_name, "off_time", session)
 
-    last_command_sent = None
+        last_command_sent = None
+        return  # Done
+
+    # Handle source from Manual: DEVICES
+    if source == "manual":
+        if command not in device_action_mapping:
+            print(f"⚠️ Unrecognized manual command: {command}")
+            return
+
+        device_name, device_status = device_action_mapping[command]
+        print(f"🧑 [Manual] Updating device '{device_name}' to {device_status}")
+        await update_device_status(device_name, device_status, session)
+        last_command_sent = None
+        return
 
 def start_listener_thread():
     listener_thread = threading.Thread(target=serial_listener, daemon=True)

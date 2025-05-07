@@ -231,3 +231,17 @@ interface PermissionApi {
         @Body request: ChangeRoleRequest
     ): Response<ChangeRoleResponse>
 }
+
+// Indicators
+data class Indicator(
+    val id: Int,
+    val indicator_name: String,
+    val status: Boolean,
+    val last_updated: String
+)
+
+
+interface IndicatorsApi {
+    @GET("indicators")
+    suspend fun getIndicators(): List<Indicator>
+}

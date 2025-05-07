@@ -6,6 +6,8 @@ from sqlmodel import select
 from models.deviceModel import Device
 from datetime import datetime, timezone
 
+from models.indicatorModel import Indicator
+
 SessionDep = Annotated[Session, Depends(get_session)]
 
 
@@ -24,3 +26,21 @@ async def update_device_status(device_name: str, device_status: bool,
     session.refresh(device)
 
     return True
+
+
+async def update_indicator_status(indicator_name: str, indicator_status: bool,
+                                  session: Session) -> bool:
+    # Find the indicator by name
+    indicator = session.exec(select(Indicator).where(Indicator.indicator_name == indicator_name)).first()
+
+    if not indicator:
+        return False
+
+    # Update the indicator's status
+    indicator.status = indicator_status
+    indicator.last_updated = datetime.now(timezone.utc)
+    session.commit()
+    session.refresh(indicator)
+
+    return True
+

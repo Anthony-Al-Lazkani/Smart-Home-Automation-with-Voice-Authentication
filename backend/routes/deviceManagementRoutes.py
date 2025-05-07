@@ -3,16 +3,17 @@ from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from database import get_session
 from sqlalchemy.orm import Session
-from typing import Annotated
+from typing import Annotated, List
 from sqlmodel import select
 from models.deviceModel import Device
+from models.indicatorModel import Indicator
 from pydantic import BaseModel
 from datetime import datetime, timezone
+from models.userModel import User
 
 from models.userModel import RoleEnum
 from serialCommunicationUtils import send_message
-from jwt_utils import get_current_role
-
+from jwt_utils import get_current_username
 
 deviceManagementRouter = APIRouter()
 
@@ -24,18 +25,12 @@ class DeviceStatusRequest(BaseModel):
 class DeviceCreateRequest(BaseModel):
     device_name: str
 
-device_action_mapping = {
-    "lights_on": ("lights", True),
-    "lights_off": ("lights", False),
-    "heater_on": ("heater", True),
-    "heater_off": ("heater", False),
-    "door_lock": ("door", False),
-    "door_unlock": ("door", True),
-    "security_on" : ("security", True),
-    "security_off" : ("security", False),
+USER_ALLOWED_COMMANDS = {
+    "lights_on",
+    "lights_off",
+    "fan_on",
+    "fan_off"
 }
-
-GUEST_ALLOWED_COMMANDS = {"lights_on", "lights_off"}
 
 # Add a new device
 @deviceManagementRouter.post("/device")
@@ -112,39 +107,25 @@ async def get_device(device_name: str, session: SessionDep) -> JSONResponse:
         status_code=200
     )
 
-
-# Control a device manually
-# @deviceManagementRouter.post("/device/{command}")
-# async def manual_control(session: SessionDep, command : str):
-#     arduino_response = send_message(command)
-#
-#     if not arduino_response:
-#         raise HTTPException(status_code=400, detail="Arduino could not execute the requested command")
-#
-#     device_info = device_action_mapping.get(command)
-#     if not device_info:
-#         return JSONResponse(
-#             content={"message": "Invalid command", "isAuthenticated": True},
-#             status_code=400
-#         )
-#     device_name, device_status = device_info
-#     response = await update_device_status(device_name, device_status, session)
-#
-#     if not response:
-#         raise HTTPException(status_code=404, detail="Device not found")
-#
-#     return JSONResponse(status_code=200, content={"message" : "Device updated successfully"})
-
+# Control a device
 class TokenBody(BaseModel):
     token : str
 
 @deviceManagementRouter.post("/device/{command}")
-async def manual_control(command : str, body : TokenBody):
-    role = get_current_role(body.token)
-    if role == RoleEnum.guest and command not in GUEST_ALLOWED_COMMANDS:
+async def manual_control(session : SessionDep, command : str, body : TokenBody):
+    current_username = get_current_username(body.token)
+    current_user = session.exec(select(User).where(User.username == current_username)).first()
+
+    if current_user.role == RoleEnum.guest:
         raise HTTPException(
             status_code=403,
-            detail="Guests are not allowed to manually control this device"
+            detail="Guests are not allowed to manually control any device"
+        )
+
+    if current_user.role == RoleEnum.user and command not in USER_ALLOWED_COMMANDS:
+        raise HTTPException(
+            status_code=403,
+            detail="Users are not allowed to manually control this device"
         )
     send_message(command)
     return JSONResponse(status_code=200, content={"message" : "Device updated successfully"})
@@ -169,3 +150,45 @@ async def get_device_summary(session: SessionDep) -> JSONResponse:
         status_code=200
     )
 
+
+# INDICATORS
+class CreateIndicatorRequest(BaseModel):
+    indicator_name: str
+
+@deviceManagementRouter.post("/indicator")
+async def create_indicator(session: SessionDep, request : CreateIndicatorRequest):
+
+    query = select(Indicator).where(Indicator.indicator_name == request.indicator_name)
+    existing_indicator = session.exec(query).first()
+
+    if existing_indicator:
+        raise HTTPException(status_code=400, detail="Indicator with this name already exists.")
+
+    indicator = Indicator(
+        indicator_name = request.indicator_name,
+        status = False,
+        last_updated=datetime.now(timezone.utc)
+    )
+
+    session.add(indicator)
+    session.commit()
+    session.refresh(indicator)
+
+    return indicator
+
+
+# GET all indicators
+class IndicatorsResponse(BaseModel):
+    id : int
+    indicator_name : str
+    status : bool
+    last_updated: datetime
+
+    class Config:
+        from_attributes = True
+
+
+@deviceManagementRouter.get("/indicators", response_model=List[IndicatorsResponse])
+async def get_all_indicators(session : SessionDep):
+    indicators = session.exec(select(Indicator)).all()
+    return indicators

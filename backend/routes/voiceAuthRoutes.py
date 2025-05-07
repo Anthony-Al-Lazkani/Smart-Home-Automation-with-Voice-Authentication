@@ -1,9 +1,11 @@
 from fastapi import APIRouter, File, UploadFile, HTTPException, Form, Depends
 from fastapi.responses import JSONResponse
+from sqlmodel import select
+
 from VoiceAuthentication.voiceAuth import verify_voice, speech_to_text
 from fastapi.responses import JSONResponse
 from VoiceAuthentication.audio_files_manager import TEMP_DIR, convert_to_wav, delete_temp_files
-from jwt_utils import decode_token, get_current_role
+from jwt_utils import decode_token, get_current_username
 import os
 import time
 from typing import Annotated
@@ -13,7 +15,7 @@ from deviceManagementUtils import update_device_status
 from database import get_session
 from sqlalchemy.orm import Session
 
-from models.userModel import RoleEnum
+from models.userModel import RoleEnum, User
 from serialCommunicationUtils import send_message
 
 
@@ -35,15 +37,6 @@ MAX_ATTEMPT_TIME = 300 # 300 seconds which means 5 minutes
 
 SessionDep = Annotated[Session, Depends(get_session)]
 
-
-device_action_mapping = {
-    "lights_on": ("lights", True),
-    "lights_off": ("lights", False),
-    "heater_on": ("heater", True),
-    "heater_off": ("heater", False),
-    "door_lock": ("door", False),
-    "door_unlock": ("door", True)
-}
 
 @voiceAuthRouter.post("/voice-upload")
 async def upload_voice(token: str = Form(...), audio: UploadFile = File(...)):
@@ -76,14 +69,19 @@ async def upload_voice(token: str = Form(...), audio: UploadFile = File(...)):
 @voiceAuthRouter.post("/voice-authentication")
 async def authenticate_voice(session: SessionDep, token: str = Form(...), audio: UploadFile = File(...)):
     """
-    Authenticates a user based on voice by comparing the uploaded AAC file with the saved voice sample.
+    Authenticates a user based on voice by comparing the uploaded converted AAC file with the saved voice sample.
     """
     if not token:
         raise HTTPException(status_code=400, detail="Token is required")
     
-    role = get_current_role(token)
-    if role != RoleEnum.admin :
+    current_username = get_current_username(token)
+    current_user = session.exec(select(User).where(User.username == current_username)).first()
+
+    if current_user.role == RoleEnum.guest :
         raise HTTPException(status_code=403, detail="Guests are not allowed to use voice commands")
+
+    if current_user.role == RoleEnum.user :
+        raise HTTPException(status_code=403, detail="Users are not allowed to use voice commands")
         
 
     # Decode token to get username

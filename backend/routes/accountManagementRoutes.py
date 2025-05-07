@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from typing import Annotated
 from passlib.context import CryptContext
 from pydantic import BaseModel
-from jwt_utils import decode_token, get_current_role
+from jwt_utils import decode_token
 from sqlmodel import select
 from models.userModel import User
 
@@ -28,10 +28,6 @@ async def reset_password(reset_request: PasswordResetRequest, session: SessionDe
     decoded_token = decode_token(reset_request.token)
     user_id = decoded_token.get("id")
     username = decoded_token.get("username")
-    role = get_current_role(reset_request.token)
-
-    if role == "guest":
-        raise HTTPException(status_code=403, detail="Guests are not allowed to change passwords")
 
 
     if not user_id or not username:

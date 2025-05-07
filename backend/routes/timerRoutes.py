@@ -9,7 +9,7 @@ from fastapi.encoders import jsonable_encoder
 import time
 from datetime import datetime, timedelta
 import asyncio
-from jwt_utils import get_current_role
+from jwt_utils import get_current_username
 from models.userModel import RoleEnum
 from serialCommunicationUtils import send_message
 
@@ -17,35 +17,35 @@ timerRouter = APIRouter()
 
 SessionDep = Annotated[Session, Depends(get_session)]
 
-GUEST_ALLOWED_DEVICES = {"lights"}
+USER_ALLOWED_DEVICES = {"lights", "fan"}
 
-# class DeviceTimerRequest(BaseModel):
-#     device_type : str
-#
+class DeviceTimerRequest(BaseModel):
+    device_type : str
+
 # # Add a new device
-# @timerRouter.post("/")
-# async def add_device(device_timer: DeviceTimerRequest, session: SessionDep) -> JSONResponse:
-#     # Check if device already exists
-#     existing_device_timer = session.exec(select(DeviceTimer).where(DeviceTimer.device_type == device_timer.device_type)).first()
-#
-#     if existing_device_timer:
-#         raise HTTPException(status_code=400, detail="Device already exists")
-#
-#     # Create new device
-#     new_device_timer = DeviceTimer(
-#         device_type=device_timer.device_type,
-#         on_time=None,
-#         off_time=None
-#     )
-#
-#     session.add(new_device_timer)
-#     session.commit()
-#     session.refresh(new_device_timer)
-#
-#     return JSONResponse(
-#         content={"message": f"Device {device_timer.device_type} added successfully"},
-#         status_code=201
-#     )
+@timerRouter.post("/")
+async def add_device(device_timer: DeviceTimerRequest, session: SessionDep) -> JSONResponse:
+    # Check if device already exists
+    existing_device_timer = session.exec(select(DeviceTimer).where(DeviceTimer.device_type == device_timer.device_type)).first()
+
+    if existing_device_timer:
+        raise HTTPException(status_code=400, detail="Device already exists")
+
+    # Create new device
+    new_device_timer = DeviceTimer(
+        device_type=device_timer.device_type,
+        on_time=None,
+        off_time=None
+    )
+
+    session.add(new_device_timer)
+    session.commit()
+    session.refresh(new_device_timer)
+
+    return JSONResponse(
+        content={"message": f"Device {device_timer.device_type} added successfully"},
+        status_code=201
+    )
 
 # def control_device(device_type: str, action: str):
 #     print(f"Action '{action}' triggered for device: {device_type}")
@@ -78,6 +78,10 @@ async def sleep_and_trigger_action(device_type: str, action: str, action_time: s
         "heater": {
             "Turn on": "heater_on",
             "Turn off": "heater_off"
+        },
+        "fan": {
+            "Turn on": "fan_on",
+            "Turn off": "fan_off"
         }
     }
 
@@ -107,9 +111,17 @@ async def update_device_timer(
     background_tasks: BackgroundTasks
 ) -> JSONResponse:
 
-    role = get_current_role(device_timer.token)
-    if role == RoleEnum.guest and device_type not in GUEST_ALLOWED_DEVICES:
-        raise HTTPException(status_code=403, detail="Guests are not allowed to set timer for this device"
+    current_username = get_current_username(device_timer.token)
+    current_user = session.exec(select(User).where(User.username == current_username))
+
+    if current_user.role == RoleEnum.guest:
+        raise HTTPException(status_code=403, detail="Guests are not allowed to set timer for any device"
+        )
+
+    if current_user.role == RoleEnum.user and command not in USER_ALLOWED_DEVICES:
+        raise HTTPException(
+            status_code=403,
+            detail="Users are not allowed to set timer for this specific device"
         )
 
     # Check if the device exists

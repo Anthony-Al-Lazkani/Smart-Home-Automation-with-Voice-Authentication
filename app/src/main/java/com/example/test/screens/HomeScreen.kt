@@ -3,6 +3,15 @@ package com.example.test.screens
 import android.app.TimePickerDialog
 import android.content.Context
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -33,7 +42,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Umbrella
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -61,6 +74,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -93,12 +108,19 @@ import kotlin.concurrent.timer
 import org.json.JSONArray
 import org.json.JSONObject
 import retrofit2.Retrofit
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.unit.Dp
 
 val deviceApi = RetrofitInstance.getDeviceApi()
+val indicatorsApi = RetrofitInstance.getIndicatorsApi()
 val devicesSummaryApi = RetrofitInstance.getDevicesSummaryApi()
 
 class DeviceViewModel : ViewModel() {
     var devices by mutableStateOf<List<com.example.test.api.Device>>(emptyList())
+        private set
+
+    var indicators by mutableStateOf<List<com.example.test.api.Indicator>>(emptyList())
         private set
 
     var totalDevices by mutableStateOf(0)
@@ -122,7 +144,9 @@ class DeviceViewModel : ViewModel() {
             while(true) {
                 try {
                     val response = deviceApi.getAllDevices()
+                    val response2 = indicatorsApi.getIndicators()
                     devices = response.devices
+                    indicators = response2
 
                     val responseSummary = devicesSummaryApi.getDeviceSummary()
                     if (responseSummary.isSuccessful) {
@@ -195,9 +219,14 @@ fun getDevicesWithState(devices: List<com.example.test.api.Device>): MutableStat
 }
 
 @Composable
-fun SecurityModeWidget() {
+fun SecurityModeWidget(SecurityState: Boolean) {
     val context = LocalContext.current
     val themeMode = ThemeMode.getInstance(context)
+    var security_loading by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+    val token = TokenManager.getToken(context) ?: ""
+    val tokenBody = TokenBody(token = token)
+    val controlApi = RetrofitInstance.getManualControlApi()
     var isEnabled by remember { mutableStateOf(false) }
 
     Box(
@@ -220,7 +249,7 @@ fun SecurityModeWidget() {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                if (security){
+                if (SecurityState){
                     Image(
                         painter = painterResource(id = R.drawable.security_icon),
                         contentDescription = "Security Mode Icon",
@@ -242,7 +271,7 @@ fun SecurityModeWidget() {
                     Text("Security Mode", color = Color(themeMode.fontColor), fontSize = 18.sp)
 
                     Text(
-                        if (security) "Enabled" else "Disabled",
+                        if (SecurityState) "Enabled" else "Disabled",
                         color = Color.Gray,
                         fontSize = 14.sp
                     )
@@ -256,6 +285,36 @@ fun SecurityModeWidget() {
                 Button(
                     onClick = {
                         //Security mode logic
+                        coroutineScope.launch {
+                            security_loading = true
+                            try {
+                                if (SecurityState) {
+                                    val response = controlApi.controlDevice("security_off", tokenBody)
+                                } else {
+                                    val response = controlApi.controlDevice("security_on", tokenBody)
+                                }
+                            } catch (e: HttpException) {
+                                try {
+                                    // Extract the error message from the error body
+                                    val errorBody = e.response()?.errorBody()?.string()
+                                    val jsonObject = errorBody?.let {
+                                        JSONObject(it)
+                                    } ?: JSONObject() // Fallback to an empty JSONObject if errorBody is null
+
+                                    val errorMessage = jsonObject.optString("detail", "An error occurred")
+
+                                    // Show error as a toast message, ensure errorMessage is non-null
+                                    Toast.makeText(context, errorMessage ?: "An error occurred", Toast.LENGTH_LONG).show()
+                                } catch (jsonException: Exception) {
+                                    // If JSON parsing fails, show a generic message
+                                    Toast.makeText(context, "An error occurred while parsing the response.", Toast.LENGTH_LONG).show()
+                                }
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "An unknown error occurred: ${e.message}", Toast.LENGTH_LONG).show()
+                            } finally {
+                                security_loading = false
+                            }
+                        }
 
                     },
                     shape = CircleShape,
@@ -263,21 +322,20 @@ fun SecurityModeWidget() {
                     modifier = Modifier.fillMaxWidth(), // Fill the box size to ensure the button takes full space
                     contentPadding = PaddingValues(2.dp)
                 ) {
-//                if (Security_loading) {
-//                    CircularProgressIndicator(
-//                        color = Color.White,
-//                        strokeWidth = 2.dp,
-//                        modifier = Modifier.size(24.dp)
-//                    )
-//                } else {
-
+                if (security_loading) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(24.dp)
+                    )
+                } else {
                     Text(
-                        text = if (security) "ON" else "OFF",
+                        text = if (SecurityState) "ON" else "OFF",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(themeMode.textButtonColor)
                     )
-//                }
+                }
                 }
             }
         }
@@ -329,6 +387,92 @@ fun DashboardCard() {
                     )
                 }
                 CircularProgressWithText(progress = viewModel.percentageOn)
+            }
+        }
+    }
+}
+
+@Composable
+fun ApplianceRect(
+    icon: Painter,
+    applianceName: String,
+    activeText: String,
+    inactiveText: String,
+    isActive: Boolean,
+    onButtonClick: () -> Unit
+) {
+    val context = LocalContext.current
+    val themeMode = ThemeMode.getInstance(context)
+
+    Box(
+        modifier = Modifier
+            .width(187.dp)
+            .height(90.dp)
+            .padding(start = 4.dp, end = 0.dp, top = 3.dp)
+            .shadow(
+                elevation = 2.dp,
+                shape = RoundedCornerShape(12),
+                clip = false
+            )
+            .background(color = Color(themeMode.secondary), shape = RoundedCornerShape(12))
+            .clickable {
+                // Optional: handle click for the entire card if needed
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Start,
+            modifier = Modifier
+                .fillMaxSize()
+
+        ) {
+            // Icon
+            Image(
+                painter = icon,
+                contentDescription = "$applianceName Icon",
+                modifier = Modifier.size(45.dp)
+            )
+
+            // Texts + Button
+            Column(
+                horizontalAlignment = Alignment.Start,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier
+                    .padding(start = 0.dp)
+            ) {
+                Text(
+                    text = applianceName,
+                    color = Color(themeMode.fontColor),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (isActive) activeText else inactiveText,
+                        color = Color.Gray,
+                        fontSize = 14.sp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = onButtonClick,
+                        shape = RoundedCornerShape(20.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(themeMode.buttonColor)),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                        elevation = ButtonDefaults.buttonElevation(6.dp),
+                        modifier = Modifier.height(28.dp)
+                    ) {
+                        Text(
+                            text = if (isActive) "OFF" else "ON",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(themeMode.textButtonColor)
+                        )
+                    }
+                }
             }
         }
     }
@@ -700,11 +844,17 @@ fun TimerPopup(onDismiss: () -> Unit) {
 fun HomeScreen(modifier: Modifier = Modifier, viewModel: DeviceViewModel = viewModel()) {
     val scrollState = rememberScrollState()
     val devices = viewModel.devices
+    val indicators = viewModel.indicators
     val devicesState = getDevicesWithState(devices)
     val context = LocalContext.current
 //    var timers by remember { mutableStateOf(listOf<DeviceTimer>()) }
     val themeMode = ThemeMode.getInstance(context)
     var isLightMode by remember { mutableStateOf(themeMode.isLightMode()) }
+    var coroutineScope = rememberCoroutineScope()
+    var ldr_loading by remember { mutableStateOf(false) }
+    val controlApi = RetrofitInstance.getManualControlApi()
+    val token = TokenManager.getToken(context) ?: ""
+    val tokenBody = TokenBody(token = token)
 
     LaunchedEffect(Unit) {
         isLightMode = themeMode.isLightMode()
@@ -733,11 +883,78 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: DeviceViewModel = viewM
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            //DoorUnlockScreen()
-            SensorWidgetRow()
-            Spacer(modifier = Modifier.height(3.dp))
-            TimerCard()
+            val ledStateSecurity = indicators.find { it.indicator_name == "security" }?.status == true
+            val ledStateGas = indicators.find { it.indicator_name == "gas" }?.status == true
+            val ledStateFire = indicators.find { it.indicator_name == "fire" }?.status == true
+            val ledStateEarthquake = indicators.find { it.indicator_name == "earthquake" }?.status == true
 
+
+            //DoorUnlockScreen()
+            if (ledStateGas or ledStateFire or ledStateEarthquake or ledStateSecurity){
+                SensorWidgetRow(
+                    fireDetected = ledStateFire,
+                    personDetected = ledStateSecurity,
+                    gasDetected = ledStateGas,
+                    rainDetected = ledStateEarthquake
+                )
+                Spacer(modifier = Modifier.height(3.dp))
+            }
+            TimerCard()
+            val ldrState = devices.find { it.device_name == "ldr" }?.status == true
+
+            Row() {
+                ApplianceRect(
+                    icon = painterResource(id = R.drawable.nightlight),
+                    applianceName = "Nightlight",
+                    activeText = "LDR ON",
+                    inactiveText = "LDR OFF",
+                    isActive = ldrState,
+                    onButtonClick = {
+                        coroutineScope.launch {
+                            ldr_loading = true
+                            try {
+                                if (ldrState) {
+                                    val response = controlApi.controlDevice("ldr_off", tokenBody)
+                                } else {
+                                    val response = controlApi.controlDevice("ldr_on", tokenBody)
+                                }
+                            } catch (e: HttpException) {
+                                try {
+                                    // Extract the error message from the error body
+                                    val errorBody = e.response()?.errorBody()?.string()
+                                    val jsonObject = errorBody?.let {
+                                        JSONObject(it)
+                                    } ?: JSONObject() // Fallback to an empty JSONObject if errorBody is null
+
+                                    val errorMessage = jsonObject.optString("detail", "An error occurred")
+
+                                    // Show error as a toast message, ensure errorMessage is non-null
+                                    Toast.makeText(context, errorMessage ?: "An error occurred", Toast.LENGTH_LONG).show()
+                                } catch (jsonException: Exception) {
+                                    // If JSON parsing fails, show a generic message
+                                    Toast.makeText(context, "An error occurred while parsing the response.", Toast.LENGTH_LONG).show()
+                                }
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "An unknown error occurred: ${e.message}", Toast.LENGTH_LONG).show()
+                            } finally {
+                                ldr_loading = false
+                            }
+                        }
+                    }
+                )
+
+                Spacer(modifier = Modifier.width(2.dp))
+
+                ApplianceRect(
+                    icon = painterResource(id = R.drawable.lamppost),
+                    applianceName = "Lamppost",
+                    activeText = "Lit Entrance",
+                    inactiveText = "No Light",
+                    isActive = false,
+                    onButtonClick = {// "Lamppost logic"
+                    }
+                )
+            }
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 contentPadding = PaddingValues(0.dp),
@@ -770,7 +987,10 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: DeviceViewModel = viewM
                 }
             }
 
-            SecurityModeWidget()
+            //
+            val securityState = devices.find { it.device_name == "security" }?.status ?: false
+
+            SecurityModeWidget(securityState)
 
             Spacer(modifier = Modifier.height(55.dp))
 
@@ -781,46 +1001,69 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: DeviceViewModel = viewM
 
 
 @Composable
-fun SensorWidgetRow() {
-    Row(
+fun SensorBox(
+    isDetected: Boolean,
+    painter: Painter,
+    size: Dp,
+) {
+    val context = LocalContext.current
+    val themeMode = ThemeMode.getInstance(context)
+
+    val backgroundColor = Color(themeMode.secondary)
+
+    val infiniteTransition = rememberInfiniteTransition()
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        )
+    )
+
+    Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 5.dp),
-        horizontalArrangement = Arrangement.Absolute.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+            .size(height = 60.dp, width = 86.dp)
+            .shadow(4.dp, RoundedCornerShape(16.dp))
+            .background(backgroundColor),
+        contentAlignment = Alignment.Center
     ) {
-        SensorBox(title = "Temp", value = "26°C")
-        SensorBox(title = "Humidity", value = "60%")
-        SensorBox(title = "Pressure", value = "1012 hPa")
+        AnimatedVisibility(
+            visible = isDetected,
+            enter = fadeIn(),
+            exit = fadeOut()
+        ) {
+            Image(
+                painter = painter,
+                contentDescription = null,
+                modifier = Modifier
+                    .size(size)
+                    .alpha(alpha),
+                colorFilter = ColorFilter.tint(Color(themeMode.fontColor))
+            )
+        }
     }
 }
 
 @Composable
-fun SensorBox(title: String, value: String) {
-    val context = LocalContext.current
-    val themeMode = ThemeMode.getInstance(context)
-    Box(
+fun SensorWidgetRow(
+    fireDetected: Boolean,
+    personDetected: Boolean,
+    gasDetected: Boolean,
+    rainDetected: Boolean
+) {
+    val quakeImage = painterResource(id = R.drawable.earthquake)
+    Row(
         modifier = Modifier
-            .width(113.dp)
-            .shadow(
-                elevation = 2.dp,
-                shape = RoundedCornerShape(12.dp),
-                clip = false
-            )
-            .background(Color(themeMode.secondary), RoundedCornerShape(12.dp))
-            .padding(vertical = 12.dp),
-        contentAlignment = Alignment.Center
+            .fillMaxWidth()
+            .padding(horizontal = 5.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = title, color = Color(themeMode.fontColor), fontSize = 14.sp)
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = value,
-                color = Color(themeMode.fontColor),
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
+        SensorBox(isDetected = fireDetected, painter = rememberVectorPainter(Icons.Filled.Whatshot), size = 32.dp)
+        SensorBox(isDetected = personDetected, painter = rememberVectorPainter(Icons.Filled.Person),size = 32.dp)
+        SensorBox(isDetected = gasDetected, painter = rememberVectorPainter(Icons.Filled.Warning),size = 32.dp)
+        SensorBox(isDetected = rainDetected, painter = quakeImage,size = 42.dp)
     }
 }
 
