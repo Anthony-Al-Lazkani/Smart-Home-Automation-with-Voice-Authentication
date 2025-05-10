@@ -1,3 +1,19 @@
+#include <LiquidCrystal_I2C.h>
+#include <DHT.h>
+#include <Wire.h>
+
+
+#define DHT_PIN 53
+#define DHT_TYPE DHT22
+DHT dht (DHT_PIN,DHT_TYPE);
+
+// LCD
+LiquidCrystal_I2C lcd(0x27, 20,4);
+
+
+enum DisplayMode { NORMAL, FIRE_ALERT, GAS_ALERT, PIR_ALERT, EARTHQUAKE_ALERT};
+DisplayMode currentMode = NORMAL;
+
 #define LED_PIN 35
 #define HEATER_PIN 28
 #define DOOR_PIN 32
@@ -8,7 +24,7 @@
 
 #define MOTOR_PIN_1 2
 #define MOTOR_PIN_2 3
-#define ENABLE_PIN 9
+#define ENABLE_PIN 7
 
 #define PIN_ON_HIGH 8
 #define PIN_OFF 6
@@ -30,6 +46,10 @@
 #define VIBRATION_SENSOR_PIN 25
 #define VIBRATION_BUZZER_PIN 41
 
+// Motion Sensor
+#define MOTION_PIN 23
+#define MOTION_SENSOR 33
+
 bool pirDetection = false;
 bool gasDetection = false;
 bool fireDetection = false;
@@ -40,8 +60,19 @@ unsigned long fireLastDetectedTime = 0;
 unsigned long earthquakeLastDetectedTime = 0;
 unsigned long gasOffStart = 0;
 
+bool motionDetected = false;
+unsigned long lastMotionTime = 0;
+
 
 unsigned long fireOffStart = 0;
+
+void displayNormalScreen() {
+  lcd.clear();
+  lcd.setCursor(0, 0); lcd.print("Temp: --.- C");
+  lcd.setCursor(0, 1); lcd.print("Humidity: --%");
+  lcd.setCursor(0, 2); lcd.print("Security: --");
+  lcd.setCursor(0, 3); lcd.print("No Alarm");
+}
 
 
 
@@ -68,9 +99,16 @@ void setup() {
 
     pinMode(GAS_PIN, OUTPUT);
 
+    pinMode(MOTION_PIN, OUTPUT);
+    pinMode(MOTION_SENSOR, INPUT);
+
     digitalWrite(PUMP_PIN, LOW);
     digitalWrite(VIBRATION_BUZZER_PIN, LOW);
     Serial.begin(9600);
+    dht.begin();
+    lcd.init();
+    lcd.backlight();
+    displayNormalScreen();
 }
 
 void loop() {
@@ -95,6 +133,8 @@ void loop() {
         } else {
             digitalWrite(LDR_PIN, LOW);
         }
+    } else {
+        digitalWrite(LDR_PIN, LOW);
     }
 
 
@@ -104,6 +144,13 @@ void loop() {
             gasDetection = true;
             gasLastDetectedTime = millis();
             Serial.println("gas_on|" + source_arduino);
+
+        if (currentMode != GAS_ALERT) {
+            lcd.clear();
+            lcd.setCursor(0, 1);
+            lcd.print("!!! GAS DETECTED !!!");
+            currentMode = GAS_ALERT;
+        }
         } else {
 
         }
@@ -111,11 +158,14 @@ void loop() {
         digitalWrite(GAS_PIN, LOW);
         gasDetection = false;
         Serial.println("gas_off|" + source_arduino);
+
+        currentMode = NORMAL;
+        displayNormalScreen();
     }
 
 
     int sensorValue = digitalRead(PIR_PIN);
-        int SecurityStatus = digitalRead(SECURITY_PIN);
+    int SecurityStatus = digitalRead(SECURITY_PIN);
 
 
     if (sensorValue == HIGH && SecurityStatus == HIGH) {
@@ -124,13 +174,23 @@ void loop() {
         pirDetection = true;
         pirLastDetectedTime = millis();
         Serial.println("security_on|" + source_arduino);
+
+        if (currentMode != PIR_ALERT) {
+            lcd.clear();
+            lcd.setCursor(0, 1);
+            lcd.print("! PERSON DETECTED !");
+            currentMode = PIR_ALERT;
+        }
     } else {
         // Motion is still detected, do nothing
     }
-    } else if (pirDetection && millis() - pirLastDetectedTime >= 10000) {
+    } else if (pirDetection && millis() - pirLastDetectedTime >= 7000) {
     digitalWrite(LED_PIR_PIN, LOW);
     pirDetection = false;
     Serial.println("security_off|" + source_arduino);
+
+    currentMode = NORMAL;
+    displayNormalScreen();
     }
 
 
@@ -142,6 +202,13 @@ void loop() {
         fireDetection = true;
         fireLastDetectedTime = millis();
         Serial.println("fire_on|" + source_arduino);
+
+        if (currentMode != FIRE_ALERT) {
+            lcd.clear();
+            lcd.setCursor(0, 1);
+            lcd.print("!! FIRE DETECTED !!");
+            currentMode = FIRE_ALERT;
+        }
     } else {
         // Fire is still detected, do nothing
     }
@@ -149,6 +216,9 @@ void loop() {
             digitalWrite(PUMP_PIN, LOW);
             fireDetection = false;
             Serial.println("fire_off|" + source_arduino);
+
+            currentMode = NORMAL;
+            displayNormalScreen();
     }
 
     int vibrationSensorValue = digitalRead(VIBRATION_SENSOR_PIN);
@@ -158,6 +228,13 @@ void loop() {
         earthquakeDetection = true;
         earthquakeLastDetectedTime = millis();
         Serial.println("earthquake_on|" + source_arduino);
+
+        if (currentMode != EARTHQUAKE_ALERT) {
+            lcd.clear();
+            lcd.setCursor(0, 1);
+            lcd.print("EARTHQUAKE DETECTED!");
+            currentMode = EARTHQUAKE_ALERT;
+        }
     } else {
         // Fire is still detected, do nothing
     }
@@ -165,6 +242,32 @@ void loop() {
             digitalWrite(VIBRATION_BUZZER_PIN, LOW);
             earthquakeDetection = false;
             Serial.println("earthquake_off|" + source_arduino);
+
+            currentMode = NORMAL;
+            displayNormalScreen();
+    }
+
+    // Motion Sensor Logic
+    int motionValue = digitalRead(MOTION_SENSOR);
+    if (motionValue == LOW) {
+        digitalWrite(MOTION_PIN, HIGH);
+        lastMotionTime = millis();
+        motionDetected = true;
+    } else if (motionDetected && millis() - lastMotionTime >= 8000) {
+        digitalWrite(MOTION_PIN, LOW);
+        motionDetected = false;
+    }
+
+
+    // DHT Sensor
+    float tempC = dht.readTemperature();
+    float humidity = dht.readHumidity();
+    // LCD Normal Mode
+    if (currentMode == NORMAL) {
+        lcd.setCursor(0, 0); lcd.print("Temp: "); lcd.print(tempC, 1); lcd.print(" C   ");
+        lcd.setCursor(0, 1); lcd.print("Humidity: "); lcd.print(humidity, 0); lcd.print("%   ");
+        lcd.setCursor(0, 2); lcd.print("Security: "); lcd.print(SecurityStatus == HIGH ? "ENABLED " : "DISABLED");
+        lcd.setCursor(0, 3); lcd.print("No Alarm     ");
     }
 
 

@@ -111,6 +111,10 @@ import retrofit2.Retrofit
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.unit.Dp
+import com.example.test.notification.NotificationHandler
+import android.os.Handler
+import android.os.Looper
+
 
 val deviceApi = RetrofitInstance.getDeviceApi()
 val indicatorsApi = RetrofitInstance.getIndicatorsApi()
@@ -242,7 +246,7 @@ fun SecurityModeWidget(SecurityState: Boolean) {
             .padding(16.dp) // Internal padding
     )
     {
-        val security = false  // boolean lal activation sammiya security
+        val security = false
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -884,9 +888,26 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: DeviceViewModel = viewM
             Spacer(modifier = Modifier.height(4.dp))
 
             val ledStateSecurity = indicators.find { it.indicator_name == "security" }?.status == true
+
+            if (ledStateSecurity) {
+                NotificationHandler.showSecurityDetectionNotification(context)
+            }
+
             val ledStateGas = indicators.find { it.indicator_name == "gas" }?.status == true
+
+            if (ledStateGas) {
+                NotificationHandler.showGasDetectionNotification(context)
+            }
             val ledStateFire = indicators.find { it.indicator_name == "fire" }?.status == true
+
+            if (ledStateFire) {
+                NotificationHandler.showFireDetectionNotification(context)
+            }
             val ledStateEarthquake = indicators.find { it.indicator_name == "earthquake" }?.status == true
+
+            if (ledStateEarthquake) {
+                NotificationHandler.showEarthquakeDetectionNotification(context)
+            }
 
 
             //DoorUnlockScreen()
@@ -993,7 +1014,6 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: DeviceViewModel = viewM
             SecurityModeWidget(securityState)
 
             Spacer(modifier = Modifier.height(55.dp))
-
 
         }
     }

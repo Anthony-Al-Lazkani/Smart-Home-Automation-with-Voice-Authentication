@@ -13,8 +13,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-//import com.example.test.objects.TimerService
-import com.example.test.objects.TokenManager
+import com.example.test.notification.NotificationHandler
 
 
 class MainActivity : ComponentActivity() {
@@ -23,6 +22,9 @@ class MainActivity : ComponentActivity() {
 
         // Request Microphone Permission
         ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 1)
+
+        // Notification Initialization
+        NotificationHandler.createNotificationChannel(this)
 
         setContent {
             val navController = rememberNavController()
@@ -37,7 +39,6 @@ class MainActivity : ComponentActivity() {
                 composable("settings") { SettingsScreen(navController) }
                 composable("voice upload") { VoiceAuthScreen(navController) }
                 composable("reset password") { ResetPasswordScreen(navController) }
-//                composable("manage roles") {RoleManager(navController)}
                 composable(
                     route = "manage_roles/{userName}",
                     arguments = listOf(navArgument("userName") { type = NavType.StringType })

@@ -6,11 +6,10 @@ from models.timerModel import DeviceTimer
 from database import get_session
 from typing import Annotated, Optional
 from fastapi.encoders import jsonable_encoder
-import time
 from datetime import datetime, timedelta
 import asyncio
 from jwt_utils import get_current_username
-from models.userModel import RoleEnum
+from models.userModel import RoleEnum, User
 from serialCommunicationUtils import send_message
 
 timerRouter = APIRouter()
@@ -112,13 +111,13 @@ async def update_device_timer(
 ) -> JSONResponse:
 
     current_username = get_current_username(device_timer.token)
-    current_user = session.exec(select(User).where(User.username == current_username))
+    current_user = session.exec(select(User).where(User.username == current_username)).first()
 
     if current_user.role == RoleEnum.guest:
         raise HTTPException(status_code=403, detail="Guests are not allowed to set timer for any device"
         )
 
-    if current_user.role == RoleEnum.user and command not in USER_ALLOWED_DEVICES:
+    if current_user.role == RoleEnum.user and device_type not in USER_ALLOWED_DEVICES:
         raise HTTPException(
             status_code=403,
             detail="Users are not allowed to set timer for this specific device"

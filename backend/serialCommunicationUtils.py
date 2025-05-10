@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from timerManagementUtils import reset_device_timer_field
 
 ser: serial.Serial | None = None
-last_command_sent: str | None = None
+# last_command_sent: str | None = None
 listener_running = True
 
 device_action_mapping = {
@@ -64,7 +64,8 @@ def close_serial_connection():
 
 
 def send_message(command: str, source: str = "manual"):
-    global ser, last_command_sent
+    global ser
+    # global last_command_sent
 
     if ser is None or not ser.is_open:
         print("⚠️ Serial connection is not open. Opening connection...")
@@ -75,7 +76,7 @@ def send_message(command: str, source: str = "manual"):
         time.sleep(2)
         ser.write(f"{command}|{source}\n".encode('utf-8'))
         print(f"Sent command: {command} (source: {source})")
-        last_command_sent = f"{command}|{source}"
+        # last_command_sent = f"{command}|{source}"
 
     except serial.SerialException as e:
         print(f"Error while sending message: {e}")
@@ -100,35 +101,8 @@ def serial_listener():
         session.close()
 
 
-# async def handle_arduino_response(response: str, session: Session):
-#     global last_command_sent
-#
-#     if "|" in response:
-#         command, source = response.split("|", 1)
-#     else:
-#         command = response
-#         source = "manual"
-#
-#     if command not in device_action_mapping:
-#         print(f"⚠️ Unrecognized command from Arduino: {command}")
-#         return
-#
-#     device_name, device_status = device_action_mapping[command]
-#
-#     print(f"✅ Updating {device_name} to {device_status} (source: {source})")
-#     await update_device_status(device_name, device_status, session)
-#
-#     if source == "timer":
-#         # Clear the on_time/off_time in DB
-#         if "on" in command:
-#             await reset_device_timer_field(device_name, "on_time", session)
-#         elif "off" in command:
-#             await reset_device_timer_field(device_name, "off_time", session)
-#
-#     last_command_sent = None
-
 async def handle_arduino_response(response: str, session: Session):
-    global last_command_sent
+    # global last_command_sent
 
     # Parse command and source
     if "|" in response:
@@ -164,7 +138,7 @@ async def handle_arduino_response(response: str, session: Session):
         elif "off" in command:
             await reset_device_timer_field(device_name, "off_time", session)
 
-        last_command_sent = None
+        # last_command_sent = None
         return  # Done
 
     # Handle source from Manual: DEVICES
@@ -176,7 +150,7 @@ async def handle_arduino_response(response: str, session: Session):
         device_name, device_status = device_action_mapping[command]
         print(f"🧑 [Manual] Updating device '{device_name}' to {device_status}")
         await update_device_status(device_name, device_status, session)
-        last_command_sent = None
+        # last_command_sent = None
         return
 
 def start_listener_thread():

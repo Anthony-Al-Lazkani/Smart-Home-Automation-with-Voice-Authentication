@@ -7,7 +7,6 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavController
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -17,18 +16,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.test.objects.TokenManager
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import android.widget.Toast
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import com.example.test.api.RetrofitInstance
 import retrofit2.HttpException
 import org.json.JSONObject
@@ -54,6 +51,21 @@ fun ResetPasswordScreen(navController: NavController) {
             .background(Color(0xFF05103A)),
         contentAlignment = Alignment.Center
     ) {
+
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = { navController.navigate("main screen") }) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Color.White
+                )
+            }
+        }
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -167,29 +179,6 @@ fun ResetPasswordScreen(navController: NavController) {
             }
 
             Spacer(modifier = Modifier.height(15.dp))
-
-//            Text(
-//                text = "Forgot your password?",
-//                fontSize = 12.sp,
-//                color = Color.White,
-//            )
-//            Spacer(modifier = Modifier.height(20.dp))
-//
-//            // Signup Link
-//            Text(
-//                text = buildAnnotatedString {
-//                    withStyle(style = SpanStyle(color = Color.White)) {
-//                        append("Don't have an account? ")
-//                    }
-//                    withStyle(style = SpanStyle(color = Color.Blue)) {
-//                        append("Sign Up")
-//                    }
-//                },
-//                fontSize = 14.sp,
-//                modifier = Modifier.clickable {
-////                    navController.navigate("signup")
-//                }
-//            )
         }
     }
 }

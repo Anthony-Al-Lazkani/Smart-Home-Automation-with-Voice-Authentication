@@ -504,7 +504,10 @@ fun SettingsScreen(navController: NavController) {
             shape = RoundedCornerShape(12.dp),
             onClick = {
                 TokenManager.removeToken(context)
-                navController.navigate("login")
+                navController.navigate("login") {
+                    popUpTo(0) { inclusive = true }
+                    launchSingleTop = true
+                }
             },
             modifier = Modifier
                 .shadow(2.dp, RoundedCornerShape(12.dp), clip = true)

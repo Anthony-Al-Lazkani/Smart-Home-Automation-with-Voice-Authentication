@@ -8,6 +8,8 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
 
     <application
         android:usesCleartextTraffic="true"
@@ -36,6 +38,8 @@
             android:name=".objects.TimerService"
             android:permission="android.permission.FOREGROUND_SERVICE"
             android:exported="false"/>
+
+        <receiver android:name=".notification.NotificationReceiver" />
 
     </application>
 
