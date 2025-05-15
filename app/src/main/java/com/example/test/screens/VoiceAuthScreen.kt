@@ -232,7 +232,10 @@ fun VoiceAuthScreen(navController: NavController,modifier: Modifier = Modifier) 
                 }
                 ActionButton(Color.Green, R.drawable.tick_icon, isComplete) {
                     sendRecording()
-                    navController.navigate("main screen")
+                    navController.navigate("main screen") {
+                        popUpTo("voice upload") { inclusive = true }
+                        launchSingleTop = true
+                    }
                 }
             }
         }

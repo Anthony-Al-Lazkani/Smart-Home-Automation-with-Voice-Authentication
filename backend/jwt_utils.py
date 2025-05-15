@@ -1,4 +1,5 @@
 import jwt
+from fastapi.security import OAuth2PasswordBearer
 from jwt import ExpiredSignatureError
 from jwt.exceptions import PyJWTError
 from datetime import datetime, timedelta
@@ -12,6 +13,8 @@ load_dotenv()
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM")
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
 class TokenData(BaseModel):
@@ -35,6 +38,19 @@ def decode_token(token: str):
         raise HTTPException(status_code=401, detail="Token has expired")
     except PyJWTError:
         raise HTTPException(status_code=401, detail="Could not validate credentials")
+
+def verify_token(token: str):
+    try:
+        # Decode the token
+        payload = decode_token(token)
+        exp = payload.get("exp")
+        if exp and datetime.utcfromtimestamp(exp) < datetime.utcnow():
+            return False
+        return True
+    except jwt.ExpiredSignatureError:
+        return False  # Token expired
+    except jwt.PyJWTError:
+        return False  # Invalid token format
 
 
 def get_current_username(token: str = Header(...)):

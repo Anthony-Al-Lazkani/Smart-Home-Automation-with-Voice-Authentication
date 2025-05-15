@@ -81,22 +81,11 @@ class UserViewModel : ViewModel() {
 }
 
 
-
-//data class User(
-//    val username: String,
-//    val email: String,
-//    val role: String
-//)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RoleManager(navController: NavController, userName: String) {
     val context = LocalContext.current
     val themeMode = remember { ThemeMode.getInstance(context) }
-//    val users = listOf(
-//        User(username = "lazkani",email = "lazkani@gmail.com" ,role = "admin"),
-//        User(username = "mathieu",email = "mathieu@gmail.com" ,role = "guest"),
-//    )
 
     val viewModel: UserViewModel = viewModel()
     val users = viewModel.users
@@ -119,12 +108,6 @@ fun RoleManager(navController: NavController, userName: String) {
         }
     }
 
-    // Function to handle role change
-    fun handleRoleChange(userName: String, newRole: String) {
-        // Your logic to update the user role
-        println("User $userName role changed to $newRole")
-    }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -138,7 +121,7 @@ fun RoleManager(navController: NavController, userName: String) {
                 .fillMaxWidth()
                 .padding(top = 16.dp, bottom = 8.dp)
         ) {
-            IconButton(onClick = { navController.navigate("settings") }) { // Use navController to pop the current screen
+            IconButton(onClick = { navController.popBackStack() }) { // Use navController to pop the current screen
                 Icon(
                     imageVector = Icons.Filled.ArrowBack,
                     contentDescription = "Back",
@@ -166,9 +149,6 @@ fun RoleManager(navController: NavController, userName: String) {
         ) {
             items(users) { user ->
                 val isCurrentUser = user.username == userName // from nav argument
-//                UserCard(user = user, isCurrentUser, onRoleChange = { newRole ->
-//                    handleRoleChange(user.username, newRole)
-//                })
                 UserCard(
                     user = UserResponse(username = user.username, email = user.email, role = user.role),
                     isCurrentUser,
@@ -379,10 +359,3 @@ fun UserCard(user: UserResponse, isCurrentUser: Boolean, onRoleChange: (String) 
         )
     }
 }
-
-
-//@Preview(showBackground = true)
-//@Composable
-//fun RoleManagerPreview() {
-//    RoleManager( = )
-//}

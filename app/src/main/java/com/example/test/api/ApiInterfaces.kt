@@ -1,5 +1,6 @@
 package com.example.test.api
 
+import android.R
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import okhttp3.ResponseBody
@@ -17,6 +18,7 @@ import retrofit2.http.Path
 import com.google.gson.annotations.SerializedName
 import retrofit2.Call
 import retrofit2.http.Header
+import java.time.LocalDateTime
 
 
 // Login
@@ -184,16 +186,6 @@ interface FetchTimerApi {
     suspend fun getAllTimers(): Response<GetAllTimersResponse>
 }
 
-// Guest Login Api
-data class GuestLoginResponse(
-    val message: String,
-    val token: String
-)
-
-interface GuestLoginApi {
-    @POST("auth/login/guest")
-    suspend fun guestLogin(): Response<GuestLoginResponse>
-}
 
 // Api for getting the user's information in the settings page
 data class UserResponse(
@@ -244,4 +236,29 @@ data class Indicator(
 interface IndicatorsApi {
     @GET("indicators")
     suspend fun getIndicators(): List<Indicator>
+}
+
+// API to check the validity of a token
+data class TokenValidationResponse(
+    val valid : Boolean
+)
+
+interface TokenValidationApi {
+    @GET("auth/token/me")
+    suspend fun validateToken(@Header("Authorization") authHeader: String) : Response<TokenValidationResponse>
+}
+
+// Logs Api
+data class LogsResponse(
+    val user: String,
+    val command: String,
+    val source: String,
+    val issued_at: String
+)
+
+interface LogsApi {
+    @GET("logs/")
+    suspend fun getLogs(
+        @Header("Authorization") token: String
+    ): Response<List<LogsResponse>>
 }

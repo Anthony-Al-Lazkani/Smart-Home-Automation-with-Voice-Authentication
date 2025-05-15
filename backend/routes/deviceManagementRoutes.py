@@ -5,10 +5,14 @@ from database import get_session
 from sqlalchemy.orm import Session
 from typing import Annotated, List
 from sqlmodel import select
+
+from deviceManagementUtils import create_log
 from models.deviceModel import Device
 from models.indicatorModel import Indicator
 from pydantic import BaseModel
 from datetime import datetime, timezone
+
+from models.logModel import SourceEnum
 from models.userModel import User
 
 from models.userModel import RoleEnum
@@ -128,6 +132,12 @@ async def manual_control(session : SessionDep, command : str, body : TokenBody):
             detail="Users are not allowed to manually control this device"
         )
     send_message(command)
+    await create_log(
+        user=current_username,
+        command=command,
+        source= SourceEnum.manual,
+        session=session
+    )
     return JSONResponse(status_code=200, content={"message" : "Device updated successfully"})
 
 @deviceManagementRouter.get("/device-summary")

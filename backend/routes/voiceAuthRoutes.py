@@ -11,10 +11,11 @@ import time
 from typing import Annotated
 from pydantic import BaseModel
 import joblib
-from deviceManagementUtils import update_device_status
+from deviceManagementUtils import update_device_status, create_log
 from database import get_session
 from sqlalchemy.orm import Session
 
+from models.logModel import SourceEnum
 from models.userModel import RoleEnum, User
 from serialCommunicationUtils import send_message
 
@@ -127,6 +128,12 @@ async def authenticate_voice(session: SessionDep, token: str = Form(...), audio:
         prediction = pipeline.predict([transcription]).tolist()[0]
 
         send_message(prediction)
+        await create_log(
+            user=username,
+            command=prediction,
+            source=SourceEnum.voice,
+            session=session
+        )
 
         # Clean up temporary files
         delete_temp_files()
@@ -220,5 +227,4 @@ async def authenticate_voice(token: str = Form(...), audio: UploadFile = File(..
         # If the action is not recognized, return success without voice authentication
         delete_temp_files()
         return JSONResponse(content={"message": "Command successful without voice authentication", "isAuthenticated": True}, status_code=200)
-
 

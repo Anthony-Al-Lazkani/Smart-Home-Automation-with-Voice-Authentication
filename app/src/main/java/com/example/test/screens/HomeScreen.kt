@@ -435,7 +435,8 @@ fun ApplianceRect(
             Image(
                 painter = icon,
                 contentDescription = "$applianceName Icon",
-                modifier = Modifier.size(45.dp)
+                modifier = Modifier.size(45.dp),
+                colorFilter = ColorFilter.tint(Color(themeMode.fontColor))
             )
 
             // Texts + Button
@@ -880,8 +881,7 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: DeviceViewModel = viewM
                 .verticalScroll(scrollState)
                 .padding(bottom = 16.dp)
         ) {
-            Text(text = "Hey, User!", fontSize = 24.sp, fontWeight = FontWeight.Normal, color = Color(themeMode.fontColor))
-            Spacer(modifier = Modifier.height(16.dp))
+//            Spacer(modifier = Modifier.height(16.dp))
 
             DashboardCard()
 

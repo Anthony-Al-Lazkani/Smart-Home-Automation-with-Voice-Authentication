@@ -58,7 +58,7 @@ fun ResetPasswordScreen(navController: NavController) {
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { navController.navigate("main screen") }) {
+            IconButton(onClick = { navController.popBackStack() }) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",

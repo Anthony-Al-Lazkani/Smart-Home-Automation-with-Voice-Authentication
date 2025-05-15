@@ -2,6 +2,9 @@ from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlmodel import Session, select
+
+from deviceManagementUtils import create_log
+from models.logModel import SourceEnum
 from models.timerModel import DeviceTimer
 from database import get_session
 from typing import Annotated, Optional
@@ -61,7 +64,7 @@ def calculate_time_difference(action_time: str) -> int:
     return int(time_diff)
 
 
-async def sleep_and_trigger_action(device_type: str, action: str, action_time: str):
+async def sleep_and_trigger_action(device_type: str, action: str, action_time: str, username : str, session : SessionDep):
     # Calculate the delay until the action time
     time_diff = calculate_time_difference(action_time)
 
@@ -90,6 +93,12 @@ async def sleep_and_trigger_action(device_type: str, action: str, action_time: s
         if action in device_commands[device_type]:
             command = device_commands[device_type][action]
             send_message(command, source="timer")
+            await create_log(
+                user=username,
+                command=command,
+                source=SourceEnum.timer,
+                session=session
+            )
         else:
             print(f"Unknown action '{action}' for device type '{device_type}'")
     else:
@@ -138,13 +147,13 @@ async def update_device_timer(
         existing_device_timer.on_time = device_timer.on_time
         action_time = device_timer.on_time
         # Schedule the action to be triggered in the background
-        background_tasks.add_task(sleep_and_trigger_action, device_type, "Turn on", action_time)
+        background_tasks.add_task(sleep_and_trigger_action, device_type, "Turn on", action_time, current_username, session)
 
     if device_timer.off_time:
         existing_device_timer.off_time = device_timer.off_time
         action_time = device_timer.off_time
         # Schedule the action to be triggered in the background
-        background_tasks.add_task(sleep_and_trigger_action, device_type, "Turn off", action_time)
+        background_tasks.add_task(sleep_and_trigger_action, device_type, "Turn off", action_time, current_username, session)
 
     session.commit()
     session.refresh(existing_device_timer)

@@ -8,8 +8,10 @@ from routes.authRoutes import authRouter
 from routes.voiceAuthRoutes import voiceAuthRouter
 from routes.accountManagementRoutes import accountManagementRouter
 from routes.deviceManagementRoutes import deviceManagementRouter
+from routes.logRoutes import logRouter
 from routes.timerRoutes import timerRouter
 from database import create_db_and_tables
+
 
 # utils
 from serialCommunicationUtils import open_serial_connection, close_serial_connection, start_listener_thread, \
@@ -36,6 +38,7 @@ app.include_router(authRouter, prefix="/auth")
 app.include_router(voiceAuthRouter, prefix="/voice-auth")
 app.include_router(accountManagementRouter, prefix="/account")
 app.include_router(timerRouter, prefix="/timer")
+app.include_router(logRouter, prefix="/logs")
 app.include_router(deviceManagementRouter)
 
 

@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
@@ -198,17 +199,6 @@ fun SettingsScreen(navController: NavController) {
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(userName, color = Color(colorFont), fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 14.dp))
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "Edit Name",
-                        tint = Color(colorFont),
-                        modifier = Modifier
-                            .padding(start = 8.dp)
-                            .clickable {
-                                isEditing = true
-                                editedName = userName
-                            }
-                    )
                 }
             }
 
@@ -265,6 +255,27 @@ fun SettingsScreen(navController: NavController) {
                     }
                 },
                 leadingIcon = Icons.Filled.Security,  // Using Android material icon
+                trailingContent = {
+                    Image(
+                        painter = painterResource(id = R.drawable.arrow_right),
+                        contentDescription = "Toggle",
+                        modifier = Modifier
+                            .size(24.dp),
+                        colorFilter = ColorFilter.tint(Color(themeMode.fontColor))
+                    )
+                }
+            )
+            Divider(color = Color(0xFF9F9F9F), thickness = 0.3.dp)
+
+            SettingItem(
+                label = "Logs",
+                cardColor = Color(themeMode.secondary),
+                textColor = Color(themeMode.fontColor),
+                shape = RoundedCornerShape(topStart = 0.dp),
+                onClick = {
+                        navController.navigate("logs")
+                },
+                leadingIcon = Icons.Filled.Book,  // Using Android material icon
                 trailingContent = {
                     Image(
                         painter = painterResource(id = R.drawable.arrow_right),
@@ -512,6 +523,9 @@ fun SettingsScreen(navController: NavController) {
             modifier = Modifier
                 .shadow(2.dp, RoundedCornerShape(12.dp), clip = true)
         )
+        if (userRole == "admin") {
+            Spacer(modifier = Modifier.height(40.dp))
+        }
 
     }
 }

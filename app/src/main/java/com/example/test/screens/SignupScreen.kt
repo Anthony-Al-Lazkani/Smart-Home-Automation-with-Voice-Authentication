@@ -173,7 +173,10 @@ fun SignupScreen(navController: NavController) {
 
                             TokenManager.saveToken(context = context, token = response.token)
 
-                            navController.navigate("voice upload")
+                            navController.navigate("voice upload") {
+                                popUpTo("signup") { inclusive = true }
+                                launchSingleTop = true
+                            }
                         } catch (e: HttpException) {
                             try {
                                 // Extract the error message from the error body

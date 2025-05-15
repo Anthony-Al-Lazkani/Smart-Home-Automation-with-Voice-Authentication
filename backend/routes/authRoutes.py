@@ -8,7 +8,7 @@ from database import get_session
 from pydantic import BaseModel
 from passlib.context import CryptContext
 from jwt_utils import TokenData, create_access_token, get_current_username_from_header, \
-    get_current_username
+    get_current_username, oauth2_scheme, verify_token
 from models.userModel import RoleEnum
 from typing import List
 
@@ -233,5 +233,15 @@ async def get_current_user(session: SessionDep, Authorization: str = Header(...)
         },
         status_code=200
     )
+
+@authRouter.get("/token/me")
+async def validate_token(token: str = Depends(oauth2_scheme)):
+    if verify_token(token):
+        return JSONResponse(
+            status_code=200,
+            content={"valid" : True}
+        )
+    else:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
 
 

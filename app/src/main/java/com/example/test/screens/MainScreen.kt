@@ -2,6 +2,9 @@ package com.example.test.screens
 
 import android.media.MediaRecorder
 import android.widget.Toast
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -17,11 +20,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.example.test.api.RetrofitInstance
 import com.example.test.objects.TokenManager
 import kotlinx.coroutines.launch
@@ -136,27 +144,6 @@ fun MainScreen(navController: NavController) {
             } catch (e: Exception) {
                 Toast.makeText(context, "An unknown error occurred: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
             }
-
-//            val response = try {
-//                voiceAuthentication.authenticateVoice(tokenPart, audioPart)
-//            } catch (e: Exception) {
-//                Toast.makeText(context, "Authentication Failed : ${e.message}", Toast.LENGTH_SHORT).show()
-//                return@launch
-//            }
-//
-//            if (response.isAuthenticated == true) {
-//                Toast.makeText(context, "Authentication Successful", Toast.LENGTH_SHORT).show()
-//            }else {
-//                Toast.makeText(context, "Authentication Failed", Toast.LENGTH_SHORT).show()
-//            }
-
-//            if (response.isSuccessful) {
-//                Log.d("Upload", "Upload successful: ${response.body()?.string()}")
-//                Toast.makeText(context, "Authentication Successful", Toast.LENGTH_SHORT).show()
-//            } else {
-//                Log.e("Upload", "Upload failed: ${response.errorBody()?.string()}")
-//                Toast.makeText(context, "Authentication Failed", Toast.LENGTH_SHORT).show()
-//            }
         }
     }
 
@@ -192,17 +179,76 @@ fun MainScreen(navController: NavController) {
                     )
 
                     // Middle Mic Button (properly centered)
+//                    Box(
+//                        modifier = Modifier
+//                            .weight(1f),
+//                        contentAlignment = Alignment.Center
+//                    ) {
+//                        IconButton(
+//                            onClick = {
+//                                // Toggle recording state
+//                                toggleRecording()
+//
+//                                // Send the recording if recording is stopped
+//                                if (!isRecording) {
+//                                    sendRecording()
+//                                }
+//                            },
+//                            modifier = Modifier
+//                                .size(56.dp)
+//                                .clip(CircleShape)
+//                        ) {
+//                            Icon(
+//                                imageVector = if (isMicFilled) Icons.Filled.Mic else Icons.Outlined.Mic,
+//                                contentDescription = "Mic"
+//                            )
+//                        }
+//                    }
+
                     Box(
                         modifier = Modifier
                             .weight(1f),
                         contentAlignment = Alignment.Center
                     ) {
+                        // Wave animation
+                        if (isRecording) {
+                            val infiniteTransition = rememberInfiniteTransition(label = "mic_wave")
+
+                            val ripples = listOf(0, 300, 600) // staggered delays in ms
+                            ripples.forEach { delayMillis ->
+                                val scale by infiniteTransition.animateFloat(
+                                    initialValue = 1f,
+                                    targetValue = 2.5f,
+                                    animationSpec = infiniteRepeatable(
+                                        animation = tween(1500, delayMillis = delayMillis, easing = LinearEasing),
+                                        repeatMode = RepeatMode.Restart
+                                    ), label = "ripple_scale_$delayMillis"
+                                )
+
+                                val alpha by infiniteTransition.animateFloat(
+                                    initialValue = 0.3f,
+                                    targetValue = 0f,
+                                    animationSpec = infiniteRepeatable(
+                                        animation = tween(1500, delayMillis = delayMillis, easing = LinearEasing),
+                                        repeatMode = RepeatMode.Restart
+                                    ), label = "ripple_alpha_$delayMillis"
+                                )
+
+                                Box(
+                                    modifier = Modifier
+                                        .size(60.dp)
+                                        .scale(scale)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFF2A6FCF).copy(alpha = alpha))
+                                        .align(Alignment.Center)
+                                )
+                            }
+                        }
+
+
                         IconButton(
                             onClick = {
-                                // Toggle recording state
                                 toggleRecording()
-
-                                // Send the recording if recording is stopped
                                 if (!isRecording) {
                                     sendRecording()
                                 }
@@ -212,9 +258,11 @@ fun MainScreen(navController: NavController) {
                                 .clip(CircleShape)
                         ) {
                             Icon(
-                                imageVector = if (isMicFilled) Icons.Filled.Mic else Icons.Outlined.Mic,
-                                contentDescription = "Mic"
+                                imageVector = if (isMicFilled || isRecording) Icons.Filled.Mic else Icons.Outlined.Mic,
+                                contentDescription = "Mic",
+                                tint = if (isRecording) Color.White else Color.Unspecified
                             )
+
                         }
                     }
 
