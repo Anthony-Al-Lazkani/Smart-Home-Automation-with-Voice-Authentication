@@ -14,6 +14,29 @@ LiquidCrystal_I2C lcd(0x27, 20,4);
 enum DisplayMode { NORMAL, FIRE_ALERT, GAS_ALERT, PIR_ALERT, EARTHQUAKE_ALERT};
 DisplayMode currentMode = NORMAL;
 
+//load consumption
+// ----- Power Consumption Settings -----
+#define MAX_LOAD_WATTS 100  // Adjust based on your system's capacity
+
+// Device wattage (update with your actual values)
+#define IR_SENSOR_WATTAGE       0.3    // 10mA @ 5V
+#define RELAYS_WATTAGE          2    // 70mA @ 5V
+#define LCD_WATTAGE             2    // 50mA @ 5V
+#define GAS_SENSOR_WATTAGE      5     // 140mA @ 5V
+#define flame_SENSOR_WATTAGE    0.3     // 140mA @ 5V
+#define PIR_SENSOR_WATTAGE      5.4     // 140mA @ 5V
+#define LDR_CIRCUIT_WATTAGE     3   // 85mA @ 5V
+#define LED_POSTS_WATTAGE       1     // 40mA @ 5V
+#define CORRIDOR_LEDS_WATTAGE   7     // 200mA @ 12V
+#define HEATER_WATTAGE          35      // 1000mA @ 12V
+#define FAN_NORMAL_WATTAGE      7     // 200mA @ 12V
+#define FAN_HIGH_WATTAGE        10     // 300mA @ 12V
+#define DOOR_LOCK_WATTAGE       16     // 450mA @ 12V
+#define LDR_LAMP_WATTAGE        3       // 220V lamp
+#define SMARTLIGHT_WATTAGE      3       // 220V lamp
+#define towerlights_pin1 49
+
+
 #define LED_PIN 35
 #define HEATER_PIN 28
 #define DOOR_PIN 32
@@ -50,6 +73,10 @@ DisplayMode currentMode = NORMAL;
 #define MOTION_PIN 23
 #define MOTION_SENSOR 33
 
+//heater fan pin
+#define HEATER_FAN_PIN 34
+
+
 bool pirDetection = false;
 bool gasDetection = false;
 bool fireDetection = false;
@@ -59,6 +86,7 @@ unsigned long gasLastDetectedTime = 0;
 unsigned long fireLastDetectedTime = 0;
 unsigned long earthquakeLastDetectedTime = 0;
 unsigned long gasOffStart = 0;
+float loadPercentage = 0.0;
 
 bool motionDetected = false;
 unsigned long lastMotionTime = 0;
@@ -96,11 +124,13 @@ void setup() {
     pinMode(PIN_ON_NORMAL, OUTPUT);
     pinMode(VIBRATION_SENSOR_PIN, INPUT);
     pinMode(VIBRATION_BUZZER_PIN, OUTPUT);
+    pinMode(towerlights_pin1, OUTPUT);
 
     pinMode(GAS_PIN, OUTPUT);
 
     pinMode(MOTION_PIN, OUTPUT);
     pinMode(MOTION_SENSOR, INPUT);
+    pinMode(HEATER_FAN_PIN,OUTPUT);
 
     digitalWrite(PUMP_PIN, LOW);
     digitalWrite(VIBRATION_BUZZER_PIN, LOW);
@@ -109,6 +139,33 @@ void setup() {
     lcd.init();
     lcd.backlight();
     displayNormalScreen();
+}
+
+float calculateLoadPercentage() {
+    float totalLoad = 0.0;
+
+    // ---------- Always-On Components ----------
+    totalLoad += IR_SENSOR_WATTAGE;    // IR Sensor
+    totalLoad += RELAYS_WATTAGE;       // Relays
+    totalLoad += LCD_WATTAGE;          // LCD
+    totalLoad += GAS_SENSOR_WATTAGE;   // Gas Sensor
+    totalLoad += LDR_CIRCUIT_WATTAGE;  // LDR Circuit
+    totalLoad += flame_SENSOR_WATTAGE;  // flame Circuit
+    totalLoad += PIR_SENSOR_WATTAGE;  // LDR Circuit
+
+    // ---------- Switchable Components ----------
+    if (digitalRead(MOTION_PIN) == HIGH)       totalLoad += CORRIDOR_LEDS_WATTAGE;
+    if (digitalRead(HEATER_PIN) == HIGH)       totalLoad += HEATER_WATTAGE;
+    if (digitalRead(LED_PIN) == HIGH)   totalLoad += SMARTLIGHT_WATTAGE;
+    if (digitalRead(LDR_PIN) == HIGH)          totalLoad += LDR_LAMP_WATTAGE;
+    if (digitalRead(towerlights_pin1) == HIGH) totalLoad += 3.0; // Assuming 3W for tower light
+
+    // ---------- Ceiling Fan Speed ----------
+    if (digitalRead(ENABLE_PIN) == HIGH) {
+        totalLoad += (digitalRead(PIN_ON_HIGH) == HIGH ? FAN_HIGH_WATTAGE : FAN_NORMAL_WATTAGE);
+    }
+
+    return min((totalLoad / MAX_LOAD_WATTS) * 100.0, 100.0);
 }
 
 void loop() {
@@ -262,12 +319,20 @@ void loop() {
     // DHT Sensor
     float tempC = dht.readTemperature();
     float humidity = dht.readHumidity();
+
+
+
+    //calculate Load
+      loadPercentage = calculateLoadPercentage();
+
     // LCD Normal Mode
     if (currentMode == NORMAL) {
         lcd.setCursor(0, 0); lcd.print("Temp: "); lcd.print(tempC, 1); lcd.print(" C   ");
         lcd.setCursor(0, 1); lcd.print("Humidity: "); lcd.print(humidity, 0); lcd.print("%   ");
         lcd.setCursor(0, 2); lcd.print("Security: "); lcd.print(SecurityStatus == HIGH ? "ENABLED " : "DISABLED");
         lcd.setCursor(0, 3); lcd.print("No Alarm     ");
+        lcd.setCursor(0, 3); lcd.print("Load: "); lcd.print(loadPercentage, 1); lcd.print("%   ");
+
     }
 
 
@@ -286,6 +351,13 @@ void loop() {
             source = fullCommand.substring(sepIndex + 1);
         }
 
+            //Heater temp
+        if (tempC >= 30.0){
+        digitalWrite(HEATER_PIN, LOW);
+        digitalWrite(HEATER_FAN_PIN,LOW);
+        Serial.println("heater_off|" + source);
+        }
+
         if (command == "lights_on") {
             digitalWrite(LED_PIN, HIGH);
             Serial.println("lights_on|" + source);
@@ -294,12 +366,18 @@ void loop() {
             digitalWrite(LED_PIN, LOW);
             Serial.println("lights_off|" + source);
 
-        } else if (command == "heater_on") {
+        } 
+        else if (command == "heater_on") {
+             if (tempC <= 30.0){
             digitalWrite(HEATER_PIN, HIGH);
+            digitalWrite(HEATER_FAN_PIN,HIGH);
             Serial.println("heater_on|" + source);
+            }
+     
 
         } else if (command == "heater_off") {
             digitalWrite(HEATER_PIN, LOW);
+            digitalWrite(HEATER_FAN_PIN,LOW);
             Serial.println("heater_off|" + source);
 
         } else if (command == "door_lock") {

@@ -143,7 +143,7 @@ def read_users(
 
 class ChangeRoleRequest(BaseModel):
     token : str
-    role: RoleEnum
+    role: str
 
 
 
@@ -158,6 +158,10 @@ async def update_user_role(username: str, request: ChangeRoleRequest,
 
     if current_user.role != RoleEnum.admin:
         raise HTTPException(status_code=403, detail="Only admins can change user roles.")
+
+    if request.role not in RoleEnum._value2member_map_:
+        raise HTTPException(status_code=400, detail="Invalid role")
+
 
     user_to_update = session.query(User).filter(User.username == username).first()
 
