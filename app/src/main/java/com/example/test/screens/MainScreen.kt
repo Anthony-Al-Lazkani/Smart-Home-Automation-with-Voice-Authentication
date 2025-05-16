@@ -249,6 +249,7 @@ fun MainScreen(navController: NavController) {
                         IconButton(
                             onClick = {
                                 toggleRecording()
+                                isMicFilled = !isMicFilled
                                 if (!isRecording) {
                                     sendRecording()
                                 }

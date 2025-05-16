@@ -69,10 +69,10 @@ def send_message(command: str, source: str = "manual"):
     if ser is None or not ser.is_open:
         print("⚠️ Serial connection is not open. Opening connection...")
         open_serial_connection()
+        time.sleep(2)
 
     try:
         # Add metadata so we know the source of the command
-        time.sleep(2)
         ser.write(f"{command}|{source}\n".encode('utf-8'))
         print(f"Sent command: {command} (source: {source})")
 
