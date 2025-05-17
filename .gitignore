@@ -19,6 +19,8 @@ database.db
 # Ignore specific backend folders
 backend/failed_attempts/
 backend/voices/
+backend/voices_ENC/
+backend/VoiceAuthentication/temp_dir
 
 # Ignore large or unnecessary ML model files
 backend/model_checkpoints/

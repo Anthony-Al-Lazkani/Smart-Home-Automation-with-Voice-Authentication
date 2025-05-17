@@ -48,6 +48,7 @@ def open_serial_connection(port='/dev/ttyUSB0', baudrate=9600, timeout=1.0):
         ser = serial.Serial(port, baudrate, timeout=timeout)
         ser.reset_input_buffer()
         print("✅ Serial connection opened.")
+        time.sleep(2)
     return ser
 
 def close_serial_connection():

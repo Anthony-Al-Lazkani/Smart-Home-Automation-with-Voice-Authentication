@@ -20,6 +20,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 class TokenData(BaseModel):
     id : int
     username: str
+    isVoiceUploaded : bool
 
 def create_access_token(data: TokenData):
     to_encode = data.dict()
@@ -61,5 +62,10 @@ def get_current_username_from_header(Authorization: str = Header(...)):  # Use A
     token = Authorization.split(" ")[1]
     decoded = decode_token(token)
     return decoded.get("username")
+
+def is_voice_uploaded_from_header(Authorization: str = Header(...)):  # Use Authorization header if needed
+    token = Authorization.split(" ")[1]
+    decoded = decode_token(token)
+    return decoded.get("isVoiceUploaded")
 
 

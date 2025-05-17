@@ -1,11 +1,16 @@
+import asyncio
+
+import torchaudio
+from dotenv import load_dotenv
 from fastapi import APIRouter, File, UploadFile, HTTPException, Form, Depends
 from fastapi.responses import JSONResponse
 from sqlmodel import select
 
-from VoiceAuthentication.voiceAuth import verify_voice, speech_to_text
+from VoiceAuthentication.voiceAuth import verify_voice, speech_to_text, verify_voice_enhanced, speech_to_text_enhanced
 from fastapi.responses import JSONResponse
 from VoiceAuthentication.audio_files_manager import TEMP_DIR, convert_to_wav, delete_temp_files
-from jwt_utils import decode_token, get_current_username
+from cryptoUtils import encrypt_file, decrypt_file
+from jwt_utils import decode_token, get_current_username, TokenData, create_access_token
 import os
 import time
 from typing import Annotated
@@ -14,7 +19,6 @@ import joblib
 from deviceManagementUtils import update_device_status, create_log
 from database import get_session
 from sqlalchemy.orm import Session
-
 from models.logModel import SourceEnum
 from models.userModel import RoleEnum, User
 from serialCommunicationUtils import send_message
@@ -22,8 +26,10 @@ from serialCommunicationUtils import send_message
 
 voiceAuthRouter = APIRouter()
 VOICES_DIR = "voices/"
+VOICES_DIR_ENC = "voices_ENC/"
 FAILED_ATTEMPTS_DIR = "failed_attempts/"
 os.makedirs(VOICES_DIR, exist_ok=True)
+os.makedirs(VOICES_DIR_ENC, exist_ok=True)
 os.makedirs(FAILED_ATTEMPTS_DIR, exist_ok=True)
 
 pipeline = joblib.load("NLP/nlp_intent_pipeline.pkl")
@@ -38,9 +44,39 @@ MAX_ATTEMPT_TIME = 300 # 300 seconds which means 5 minutes
 
 SessionDep = Annotated[Session, Depends(get_session)]
 
+load_dotenv()
+
+
+# @voiceAuthRouter.post("/voice-upload")
+# async def upload_voice(token: str = Form(...), audio: UploadFile = File(...)):
+#     """
+#     Receives an AAC audio file, converts it to WAV, resamples to 16kHz, and saves it in voices/{username}.wav.
+#     """
+#     if not token:
+#         raise HTTPException(status_code=400, detail="Token is required")
+#
+#     # Save the raw AAC file temporarily
+#     username = decode_token(token)["username"]
+#     raw_aac_path = os.path.join(TEMP_DIR, f"{username}.aac")
+#     with open(raw_aac_path, "wb") as f:
+#         f.write(await audio.read())
+#
+#     # Convert AAC to WAV
+#     wav_path = os.path.join(TEMP_DIR, f"{username}.wav")
+#     convert_to_wav(raw_aac_path, wav_path)
+#
+#     # No need to resample
+#     final_audio_path = os.path.join(VOICES_DIR, f"{username}.wav")
+#     os.rename(wav_path, final_audio_path)
+#
+#
+#     return JSONResponse(
+#         content={"message": "Audio processed successfully", "file_path": final_audio_path},
+#         status_code=200
+#     )
 
 @voiceAuthRouter.post("/voice-upload")
-async def upload_voice(token: str = Form(...), audio: UploadFile = File(...)):
+async def upload_voice(session: SessionDep, token: str = Form(...), audio: UploadFile = File(...)):
     """
     Receives an AAC audio file, converts it to WAV, resamples to 16kHz, and saves it in voices/{username}.wav.
     """
@@ -57,77 +93,171 @@ async def upload_voice(token: str = Form(...), audio: UploadFile = File(...)):
     wav_path = os.path.join(TEMP_DIR, f"{username}.wav")
     convert_to_wav(raw_aac_path, wav_path)
 
-    # No need to resample 
-    final_audio_path = os.path.join(VOICES_DIR, f"{username}.wav")
-    os.rename(wav_path, final_audio_path)
+    # No need to resample
+    final_audio_path = os.path.join(VOICES_DIR_ENC, f"{username}.wav.enc")
+    encrypt_file(wav_path, final_audio_path)
+    os.remove(wav_path)
+
+    user = session.exec(select(User).where(User.username == username)).first()
+
+    new_token_data = TokenData(id=user.id, username=user.username, isVoiceUploaded=True)
+    new_token = create_access_token(new_token_data)
 
 
     return JSONResponse(
-        content={"message": "Audio processed successfully", "file_path": final_audio_path},
-        status_code=200
+        content={"message": "Audio processed successfully", "token" : new_token},
+        status_code=201
     )
 
+# @voiceAuthRouter.post("/voice-authentication")
+# async def authenticate_voice(session: SessionDep, token: str = Form(...), audio: UploadFile = File(...)):
+#     start_time = time.time()
+#     if not token:
+#         raise HTTPException(status_code=400, detail="Token is required")
+#
+#     current_username = get_current_username(token)
+#     current_user = session.exec(select(User).where(User.username == current_username)).first()
+#
+#     if current_user.role in [RoleEnum.guest, RoleEnum.user]:
+#         raise HTTPException(status_code=403, detail="This role is not allowed to use voice commands")
+#
+#     username = decode_token(token)["username"]
+#     saved_voice_path = os.path.join(VOICES_DIR, f"{username}.wav")
+#
+#     if not os.path.exists(saved_voice_path):
+#         raise HTTPException(status_code=404, detail="No saved voice sample found for this user")
+#
+#     # Failed attempts logic
+#     now = time.time()
+#     if username not in failed_attempts_tracker:
+#         failed_attempts_tracker[username] = {"attempts": 0, "last_failed_time": now}
+#     if now - failed_attempts_tracker[username]["last_failed_time"] > MAX_ATTEMPT_TIME:
+#         failed_attempts_tracker[username]["attempts"] = 0
+#     if failed_attempts_tracker[username]["attempts"] >= MAX_FAILED_ATTEMPTS:
+#         raise HTTPException(status_code=403, detail="Too many failed attempts, try again later.")
+#
+#     # Save uploaded audio
+#     raw_aac_path = os.path.join(TEMP_DIR, f"{username}_temp.aac")
+#     with open(raw_aac_path, "wb") as f:
+#         f.write(await audio.read())
+#
+#     temp_wav_path = os.path.join(TEMP_DIR, f"{username}_temp.wav")
+#
+#
+#     convert_to_wav(raw_aac_path, temp_wav_path)
+#
+#     # Load audio once
+#     signal2, fs2 = torchaudio.load(temp_wav_path)
+#
+#     # Parallel: verify + transcribe
+#     loop = asyncio.get_event_loop()
+#
+#     verify_task = loop.run_in_executor(None, verify_voice_enhanced, saved_voice_path, signal2)
+#     transcribe_task = loop.run_in_executor(None, speech_to_text_enhanced, signal2)
+#
+#     is_match, transcription = await asyncio.gather(verify_task, transcribe_task)
+#
+#     print(f"Transcription : {transcription}")
+#     if is_match:
+#         failed_attempts_tracker[username] = {"attempts": 0, "last_failed_time": now}
+#
+#         prediction = pipeline.predict([transcription]).tolist()[0]
+#         send_message(prediction)
+#         await create_log(
+#             user=username,
+#             command=prediction,
+#             source=SourceEnum.voice,
+#             session=session
+#         )
+#         delete_temp_files()
+#         end_time = time.time()
+#         duration = end_time - start_time
+#         print(f"Voice Authentication tasks took {duration:.2f} seconds")
+#         return JSONResponse(content={"message": "Authentication successful"}, status_code=200)
+#
+#     else:
+#         failed_attempts_tracker[username]["attempts"] += 1
+#         failed_attempts_tracker[username]["last_failed_time"] = now
+#
+#         if failed_attempts_tracker[username]["attempts"] >= MAX_FAILED_ATTEMPTS:
+#             failed_wav_path = os.path.join(FAILED_ATTEMPTS_DIR, f"{username}failed{int(now)}.wav")
+#             convert_to_wav(raw_aac_path, failed_wav_path)
+#
+#         delete_temp_files()
+#         raise HTTPException(status_code=401, detail="Voice does not match profile.")
+
 @voiceAuthRouter.post("/voice-authentication")
-async def authenticate_voice(session: SessionDep, token: str = Form(...), audio: UploadFile = File(...)):
+async def authenticate_voice(
+    session: SessionDep,
+    token: str = Form(...),
+    audio: UploadFile = File(...)
+):
     """
-    Authenticates a user based on voice by comparing the uploaded converted AAC file with the saved voice sample.
+    Authenticates user by comparing their voice to a previously uploaded sample.
+    Also transcribes the voice and triggers a prediction pipeline if matched.
     """
+    start_time = time.time()
+
     if not token:
         raise HTTPException(status_code=400, detail="Token is required")
-    
-    current_username = get_current_username(token)
-    current_user = session.exec(select(User).where(User.username == current_username)).first()
 
-    if current_user.role == RoleEnum.guest :
-        raise HTTPException(status_code=403, detail="Guests are not allowed to use voice commands")
+    # Get current username
+    try:
+        username = decode_token(token)["username"]
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
-    if current_user.role == RoleEnum.user :
-        raise HTTPException(status_code=403, detail="Users are not allowed to use voice commands")
-        
+    # Validate user role
+    current_user = session.exec(select(User).where(User.username == username)).first()
+    if current_user is None:
+        raise HTTPException(status_code=404, detail="User not found")
 
-    # Decode token to get username
-    username = decode_token(token)["username"]
-    saved_voice_path = os.path.join(VOICES_DIR, f"{username}.wav")
+    if current_user.role in [RoleEnum.guest, RoleEnum.user]:
+        raise HTTPException(status_code=403, detail="This role is not allowed to use voice commands")
 
-    if not os.path.exists(saved_voice_path):
+    # Check if encrypted voice sample exists
+    encrypted_voice_path = os.path.join(VOICES_DIR_ENC, f"{username}.wav.enc")
+    if not os.path.exists(encrypted_voice_path):
         raise HTTPException(status_code=404, detail="No saved voice sample found for this user")
 
-    # Initialize failed attempts tracker for the user if not present
+    # Decrypt for comparison
+    decrypted_path = os.path.join(TEMP_DIR, f"{username}_ref.wav")
+    decrypt_file(encrypted_voice_path, decrypted_path)
+
+    # Check failed attempts
+    now = time.time()
     if username not in failed_attempts_tracker:
-        failed_attempts_tracker[username] = {"attempts": 0, "last_failed_time": time.time()}
-
-    # Reset failed attempts if 5 minutes have passed since the last failed attempt
-    if time.time() - failed_attempts_tracker[username]["last_failed_time"] > MAX_ATTEMPT_TIME:
+        failed_attempts_tracker[username] = {"attempts": 0, "last_failed_time": now}
+    if now - failed_attempts_tracker[username]["last_failed_time"] > MAX_ATTEMPT_TIME:
         failed_attempts_tracker[username]["attempts"] = 0
-
-    # Check if the user has reached the limit of failed attempts
     if failed_attempts_tracker[username]["attempts"] >= MAX_FAILED_ATTEMPTS:
-        raise HTTPException(status_code=403, detail="Too many failed attempts, please try again after 5 minutes.")
+        raise HTTPException(status_code=403, detail="Too many failed attempts, try again later.")
 
-    # Save raw audio
+    # Save uploaded audio (AAC) and convert to WAV
     raw_aac_path = os.path.join(TEMP_DIR, f"{username}_temp.aac")
     with open(raw_aac_path, "wb") as f:
         f.write(await audio.read())
 
-    # Convert
     temp_wav_path = os.path.join(TEMP_DIR, f"{username}_temp.wav")
     convert_to_wav(raw_aac_path, temp_wav_path)
 
-    # Verify voice
-    is_match = verify_voice(saved_voice_path, temp_wav_path)
+    # Load uploaded WAV
+    signal2, fs2 = torchaudio.load(temp_wav_path)
 
-    # Handle authentication result
+    # Run voice verification and transcription in parallel
+    loop = asyncio.get_event_loop()
+    verify_task = loop.run_in_executor(None, verify_voice_enhanced, decrypted_path, signal2)
+    transcribe_task = loop.run_in_executor(None, speech_to_text_enhanced, signal2)
+    is_match, transcription = await asyncio.gather(verify_task, transcribe_task)
+
+    print(f"Transcription: {transcription}")
+
     if is_match:
-        # Reset failed attempts on successful authentication
-        failed_attempts_tracker[username] = {"attempts": 0, "last_failed_time": time.time()}
-        transcription = speech_to_text(temp_wav_path)
-        print(f"Transcription: {transcription}")
-
-        # Pass the transcription to the AI model for prediction
+        failed_attempts_tracker[username] = {"attempts": 0, "last_failed_time": now}
 
         prediction = pipeline.predict([transcription]).tolist()[0]
-
         send_message(prediction)
+
         await create_log(
             user=username,
             command=prediction,
@@ -135,96 +265,18 @@ async def authenticate_voice(session: SessionDep, token: str = Form(...), audio:
             session=session
         )
 
-        # Clean up temporary files
         delete_temp_files()
+        print(f"Voice authentication took: {time.time() - start_time:.2f}s")
         return JSONResponse(content={"message": "Authentication successful"}, status_code=200)
+
     else:
-        # Increment failed attempts
         failed_attempts_tracker[username]["attempts"] += 1
-        failed_attempts_tracker[username]["last_failed_time"] = time.time()
+        failed_attempts_tracker[username]["last_failed_time"] = now
 
-        # Save the failed audio after 3 failed attempts
+        # Save failed attempt if limit is hit
         if failed_attempts_tracker[username]["attempts"] >= MAX_FAILED_ATTEMPTS:
-            # failed_audio_path = os.path.join(FAILED_ATTEMPTS_DIR, f"{username}_failed_{int(time.time())}.aac")
-            # with open(failed_audio_path, "wb") as f:
-            #     f.write(await audio.read())
-            failed_wav_path = os.path.join(FAILED_ATTEMPTS_DIR, f"{username}_failed_{int(time.time())}.wav")
-            convert_to_wav(raw_aac_path, failed_wav_path)
+            failed_path = os.path.join(FAILED_ATTEMPTS_DIR, f"{username}_failed_{int(now)}.wav")
+            convert_to_wav(raw_aac_path, failed_path)
 
-        # Clean up temporary files
         delete_temp_files()
-        raise HTTPException(status_code=401, detail="The provided voice does not match the user's profile.")
-
-
-@voiceAuthRouter.post("/voice-control")
-async def authenticate_voice(token: str = Form(...), audio: UploadFile = File(...)):
-    """
-    Authenticates a user based on voice by comparing the uploaded AAC file with the saved voice sample.
-    """
-    if not token:
-        raise HTTPException(status_code=400, detail="Token is required")
-
-    # Decode token to get username
-    username = decode_token(token)["username"]
-    saved_voice_path = os.path.join(VOICES_DIR, f"{username}.wav")
-
-    if not os.path.exists(saved_voice_path):
-        raise HTTPException(status_code=404, detail="No saved voice sample found for this user")
-
-    # Initialize failed attempts tracker for the user if not present
-    if username not in failed_attempts_tracker:
-        failed_attempts_tracker[username] = {"attempts": 0, "last_failed_time": time.time()}
-
-    # Reset failed attempts if 5 minutes have passed since the last failed attempt
-    if time.time() - failed_attempts_tracker[username]["last_failed_time"] > MAX_ATTEMPT_TIME:
-        failed_attempts_tracker[username]["attempts"] = 0
-
-    # Check if the user has reached the limit of failed attempts
-    if failed_attempts_tracker[username]["attempts"] >= MAX_FAILED_ATTEMPTS:
-        raise HTTPException(status_code=403, detail="Too many failed attempts, please try again after 5 minutes.")
-
-    # Save raw audio
-    raw_aac_path = os.path.join(TEMP_DIR, f"{username}_temp.aac")
-    with open(raw_aac_path, "wb") as f:
-        f.write(await audio.read())
-
-    # Convert
-    temp_wav_path = os.path.join(TEMP_DIR, f"{username}_temp.wav")
-    convert_to_wav(raw_aac_path, temp_wav_path)
-
-    # Speech to text
-    transcription = speech_to_text(temp_wav_path)
-    print(f"Transcription: {transcription}")
-
-    # Process transcription with AI model (NLP model)
-    command_vec = vectorizer.transform([transcription])
-    prediction = model.predict(command_vec)[0]
-
-    if prediction in PREDEFINED_ACTIONS:
-        # Perform voice authentication
-        is_match = verify_voice(saved_voice_path, temp_wav_path)
-
-        if is_match:
-            failed_attempts_tracker[username] = {"attempts": 0, "last_failed_time": time.time()}
-            # Clean up temporary files
-            delete_temp_files()
-            return JSONResponse(content={"message": "Authentication successful", "isAuthenticated": True},
-                                status_code=200)
-        else:
-            failed_attempts_tracker[username]["attempts"] += 1
-            failed_attempts_tracker[username]["last_failed_time"] = time.time()
-
-            # Save failed audio after 3 failed attempts
-            if failed_attempts_tracker[username]["attempts"] >= MAX_FAILED_ATTEMPTS:
-                failed_wav_path = os.path.join(FAILED_ATTEMPTS_DIR, f"{username}_failed_{int(time.time())}.wav")
-                convert_to_wav(raw_aac_path, failed_wav_path)
-
-            # Clean up temporary files
-            delete_temp_files()
-            return JSONResponse(content={"message": "Authentication failed", "isAuthenticated": False}, status_code=401)
-
-    else:
-        # If the action is not recognized, return success without voice authentication
-        delete_temp_files()
-        return JSONResponse(content={"message": "Command successful without voice authentication", "isAuthenticated": True}, status_code=200)
-
+        raise HTTPException(status_code=401, detail="Voice does not match profile.")

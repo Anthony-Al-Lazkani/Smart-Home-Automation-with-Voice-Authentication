@@ -1,5 +1,6 @@
 import asyncio
 
+import joblib
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -22,9 +23,8 @@ app = FastAPI()
 isConnected = True
 
 
-
 @app.on_event("startup")
-def on_startup():
+async def on_startup():
     create_db_and_tables()
     if isConnected:
         start_listener_thread()

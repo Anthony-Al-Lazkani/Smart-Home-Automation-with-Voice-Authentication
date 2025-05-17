@@ -1,3 +1,5 @@
+import os
+
 from fastapi import APIRouter, HTTPException, Depends, Query, Header
 from fastapi.responses import JSONResponse
 from sqlmodel import select
@@ -8,11 +10,11 @@ from database import get_session
 from pydantic import BaseModel
 from passlib.context import CryptContext
 from jwt_utils import TokenData, create_access_token, get_current_username_from_header, \
-    get_current_username, oauth2_scheme, verify_token
+    get_current_username, oauth2_scheme, verify_token, decode_token, is_voice_uploaded_from_header
 from models.userModel import RoleEnum
 from typing import List
 
-
+from routes.voiceAuthRoutes import VOICES_DIR_ENC
 
 authRouter = APIRouter()
 
@@ -75,7 +77,7 @@ async def sign_up(user: signUpRequest, session: SessionDep) -> JSONResponse:
     session.commit()
     session.refresh(new_user)
 
-    token_data = TokenData(id=new_user.id, username=new_user.username)
+    token_data = TokenData(id=new_user.id, username=new_user.username, isVoiceUploaded=False)
     token = create_access_token(token_data)
 
     return JSONResponse(
@@ -93,7 +95,10 @@ async def login(user: signInRequest, session: SessionDep) -> JSONResponse:
     if not pwd_context.verify(user.password, existing_user.password):
         raise HTTPException(status_code=400, detail="Invalid Password !")
 
-    token_data = TokenData(id=existing_user.id, username=existing_user.username)
+    voice_file_path = os.path.join(VOICES_DIR_ENC, f"{existing_user.username}.wav.enc")
+    is_voice_uploaded = os.path.isfile(voice_file_path)
+
+    token_data = TokenData(id=existing_user.id, username=existing_user.username, isVoiceUploaded=is_voice_uploaded)
     token = create_access_token(token_data)
 
     return JSONResponse(
@@ -220,6 +225,7 @@ async def get_users(session: SessionDep, Authorization: str = Header(...)):
 async def get_current_user(session: SessionDep, Authorization: str = Header(...)):
     # Get the current username from the token
     username = get_current_username_from_header(Authorization)
+    is_voice_uploaded = is_voice_uploaded_from_header(Authorization)
 
     # Fetch the user from the database using the username
     user = session.query(User).filter(User.username == username).first()
@@ -234,6 +240,7 @@ async def get_current_user(session: SessionDep, Authorization: str = Header(...)
             "username": user.username,
             "email": user.email,
             "role": user.role.value,
+            "isVoiceUploaded" : is_voice_uploaded,
         },
         status_code=200
     )
