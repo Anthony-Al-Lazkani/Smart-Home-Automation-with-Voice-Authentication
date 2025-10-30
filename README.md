@@ -1,6 +1,6 @@
 # Smart Home Automation with Voice Authentication
 ## Overview
-Smart Home Automation with Voice Authentication is a 6-month final-year engineering project developed by a team of four engineers — two software and two electrical engineers.
+Smart Home Automation with Voice Authentication is a 6-month final-year engineering project developed by a team of four engineers : two software and two electrical engineers.
 The system enables users to control home appliances using secure, locally processed voice commands, ensuring privacy and data ownership without relying on third-party APIs.
 The system integrates voice recognition, speech-to-text, NLP, and IoT components into a unified platform that controls real appliances through an Android application connected to a FastAPI backend and Arduino-based circuit.
 
@@ -69,7 +69,7 @@ This project was designed to prioritize user privacy and local processing, ensur
 7. Arduino Confirmation → DB Update
 
 ### NLP Training
-* Dataset located under /NLP/datasets/
+* Dataset located under /backend/NLP/datasets/
 * Trained on domain-specific data for flexible commands (e.g. “Turn on the lights”, “Make the room brighter”, “Please can you turn on the lights” → lights_on)
 
 ### Communication Layer
